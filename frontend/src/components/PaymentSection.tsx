@@ -111,7 +111,7 @@ export function PaymentSection({
           </div>
           <div className="space-y-1">
             <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-[10px]">Pe</span>
+              <span className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-[10px]">Ex</span>
               Expense
             </label>
             <div className="relative">
