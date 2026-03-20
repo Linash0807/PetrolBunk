@@ -350,7 +350,7 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
       />
 
       {/* Sticky Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex gap-3 z-50 lg:max-w-7xl lg:mx-auto">
+      <div className="fixed bottom-3 left-100 right-100 p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex gap-3 z-50 lg:max-w-7xl lg:mx-auto rounded-t-2xl">
         
         <button 
           disabled={!isFullyVerified || isSubmitting}
