@@ -86,12 +86,13 @@ export function Reports({ entries }: { entries: ShiftEntry[] }) {
       theme: 'grid',
       styles: { fontSize: 8, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.5, cellPadding: 3 },
       headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold' },
-      head: [['Employee', 'Shift', 'Speed (L)', 'MS (L)', 'HSD (L)', 'Cash', 'PhonePe', 'Fleet', 'Shift Total']],
+      head: [['Employee', 'Shift', 'Pump', 'Speed (L)', 'MS (L)', 'HSD (L)', 'Cash', 'PhonePe', 'Fleet', 'Shift Total']],
       body: currentData.map((shift) => {
         const shiftTotal = shift.cash + shift.phonePe + shift.fleetCard;
         return [
           shift.employee || 'Unknown',
-          shift.shift,
+          `Shift ${shift.shift}`,
+          `Pump ${shift.pump || '-'}`,
           shift.speed.toFixed(2),
           shift.ms.toFixed(2),
           shift.hsd.toFixed(2),
@@ -246,9 +247,9 @@ export function Reports({ entries }: { entries: ShiftEntry[] }) {
             <div className="bg-slate-50 dark:bg-slate-800/50 px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between print:bg-white print:border-black print:py-1.5 print:px-2">
               <div className="flex items-center gap-3">
                 <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 font-bold print:bg-white print:text-black print:border print:border-black print:w-5 print:h-5 print:text-[10px] print:rounded-sm">
-                  {shift.shift}
+                  {`S${shift.shift}`}
                 </span>
-                <span className="font-bold text-lg text-slate-900 dark:text-white print:text-[11px] print:text-black">{shift.employee}</span>
+                <span className="font-bold text-lg text-slate-900 dark:text-white print:text-[11px] print:text-black">{shift.employee} {shift.pump ? `(Pump ${shift.pump})` : ''}</span>
               </div>
               <div className="text-sm font-semibold text-slate-500 print:text-[10px] print:text-black">
                 Shift Total: ₹{(shift.cash + shift.phonePe + shift.fleetCard).toLocaleString('en-IN')}

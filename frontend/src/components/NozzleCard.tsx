@@ -17,11 +17,13 @@ interface NozzleCardProps {
   isMismatch: boolean;
   hasInputs: boolean;
   isNegativeSales: boolean;
+  isOmrLocked?: boolean;
+  omrHelpText?: string;
   onChange: (field: keyof NozzleData, value: string) => void;
 }
 
 export function NozzleCard({ 
-  nozzle, sales, netSales, isMatch, isMismatch, hasInputs, isNegativeSales, onChange 
+  nozzle, sales, netSales, isMatch, isMismatch, hasInputs, isNegativeSales, isOmrLocked = false, omrHelpText = '', onChange 
 }: NozzleCardProps) {
   
   let statusColorClass = "border-slate-200 dark:border-slate-800";
@@ -63,9 +65,17 @@ export function NozzleCard({
               type="number"
               placeholder="0.00"
               value={nozzle.omr}
+              readOnly={isOmrLocked}
               onChange={e => onChange('omr', e.target.value)}
-              className="w-full h-12 px-3 text-lg font-medium rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              className={`w-full h-12 px-3 text-lg font-medium rounded-xl border outline-none transition-all ${
+                isOmrLocked
+                  ? 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-not-allowed'
+                  : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+              }`}
             />
+            {isOmrLocked && omrHelpText && (
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{omrHelpText}</p>
+            )}
           </div>
           <div className="space-y-1">
             <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">CMR</label>

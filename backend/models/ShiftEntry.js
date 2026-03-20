@@ -1,5 +1,41 @@
 import mongoose from 'mongoose';
 
+const nozzleReadingSchema = new mongoose.Schema(
+  {
+    nozzleId: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    nozzleName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    omr: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    cmr: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    testing: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    writtenNet: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+  },
+  { _id: false }
+);
+
 const shiftEntrySchema = new mongoose.Schema(
   {
     bunk: {
@@ -17,6 +53,11 @@ const shiftEntrySchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: ['A', 'B', 'C', 'Day End'],
+    },
+    pump: {
+      type: String,
+      required: true,
+      enum: ['A', 'B', 'C', 'D', 'E', 'F'],
     },
     employee: {
       type: String,
@@ -52,6 +93,15 @@ const shiftEntrySchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 0,
+    },
+    expense: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    nozzleReadings: {
+      type: [nozzleReadingSchema],
+      default: [],
     },
   },
   {

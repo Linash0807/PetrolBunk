@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Calendar, MapPin, Clock, User, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Calendar, Clock, User, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { NozzleCard, type NozzleData } from './NozzleCard';
 import { PaymentSection } from './PaymentSection';
 import { VerificationPanel } from './VerificationPanel';
@@ -9,14 +9,18 @@ const NOZZLES = ['Speed1', 'Speed2', 'MS1', 'MS2', 'HSD1', 'HSD2'];
 
 interface NewEntryFormProps {
   onAddEntry: (entry: ShiftEntry) => Promise<void>;
+  entries: ShiftEntry[];
 }
 
-export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
-  const [bunk, setBunk] = useState('Bunk 1');
+const PUMPS = ['A', 'B', 'C', 'D', 'E', 'F'];
+const METER_HISTORY_KEY = 'pbm-nozzle-last-cmr-v1';
+const SHIFT_SEQUENCE: Record<string, number> = { A: 1, B: 2, C: 3, 'Day End': 4 };
+
+export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [shift, setShift] = useState('A');
+  const [pump, setPump] = useState('A');
   const [employee, setEmployee] = useState('');
-  const [entryMode, setEntryMode] = useState<'employee' | 'bunk'>('employee');
 
   const [prices, setPrices] = useState({
     Speed: '117.78',
@@ -40,12 +44,156 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
   const [fleetCard, setFleetCard] = useState('');
   const [actualCash, setActualCash] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [expectedOmrByNozzle, setExpectedOmrByNozzle] = useState<Record<string, string>>({});
+  const [omrSourceLabel, setOmrSourceLabel] = useState('');
+
+  useEffect(() => {
+    const latestReadingByNozzle: Record<string, string> = {};
+    let resolvedSourceLabel = '';
+
+    const entriesByPump = entries.filter((entry) => {
+      if (entry.pump) return entry.pump === pump;
+      return entry.shift === pump;
+    });
+    const entriesWithNozzleHistory = entries.filter((entry) => (entry.nozzleReadings || []).length > 0);
+
+    const currentShiftRank = SHIFT_SEQUENCE[shift] ?? 0;
+    const nearestPreviousEntry = entriesByPump
+      .filter((entry) => {
+        if (!entry.date) return false;
+        if (entry.date < date) return true;
+        if (entry.date > date) return false;
+
+        const entryShiftRank = SHIFT_SEQUENCE[entry.shift] ?? 0;
+        return entryShiftRank < currentShiftRank;
+      })
+      .sort((a, b) => {
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+
+        const shiftDiff = (SHIFT_SEQUENCE[b.shift] ?? 0) - (SHIFT_SEQUENCE[a.shift] ?? 0);
+        if (shiftDiff !== 0) return shiftDiff;
+
+        const aCreatedAt = (a as ShiftEntry & { createdAt?: string }).createdAt || '';
+        const bCreatedAt = (b as ShiftEntry & { createdAt?: string }).createdAt || '';
+        return bCreatedAt.localeCompare(aCreatedAt);
+      })[0];
+
+    if (nearestPreviousEntry) {
+      resolvedSourceLabel = `Auto from ${nearestPreviousEntry.date} Shift ${nearestPreviousEntry.shift} (Pump ${pump})`;
+      for (const reading of nearestPreviousEntry.nozzleReadings || []) {
+        if (!(reading.nozzleId in latestReadingByNozzle)) {
+          latestReadingByNozzle[reading.nozzleId] = String(reading.cmr);
+        }
+      }
+    }
+
+    if (Object.keys(latestReadingByNozzle).length === 0) {
+      for (const entry of entriesByPump) {
+        for (const reading of entry.nozzleReadings || []) {
+          if (!(reading.nozzleId in latestReadingByNozzle)) {
+            latestReadingByNozzle[reading.nozzleId] = String(reading.cmr);
+          }
+        }
+      }
+      if (Object.keys(latestReadingByNozzle).length > 0) {
+        resolvedSourceLabel = `Auto from latest saved record (Pump ${pump})`;
+      }
+    }
+
+    if (Object.keys(latestReadingByNozzle).length === 0 && entriesWithNozzleHistory.length > 0) {
+      const fallbackEntry = [...entriesWithNozzleHistory].sort((a, b) => {
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        const aCreatedAt = (a as ShiftEntry & { createdAt?: string }).createdAt || '';
+        const bCreatedAt = (b as ShiftEntry & { createdAt?: string }).createdAt || '';
+        return bCreatedAt.localeCompare(aCreatedAt);
+      })[0];
+
+      for (const reading of fallbackEntry.nozzleReadings || []) {
+        if (!(reading.nozzleId in latestReadingByNozzle)) {
+          latestReadingByNozzle[reading.nozzleId] = String(reading.cmr);
+        }
+      }
+
+      if (Object.keys(latestReadingByNozzle).length > 0) {
+        const fallbackPump = fallbackEntry.pump || '-';
+        resolvedSourceLabel = `Auto fallback from latest entry (Pump ${fallbackPump})`;
+      }
+    }
+
+    if (Object.keys(latestReadingByNozzle).length === 0) {
+      const fallbackRaw = window.localStorage.getItem(METER_HISTORY_KEY);
+      if (fallbackRaw) {
+        try {
+          const fallback = JSON.parse(fallbackRaw) as Record<string, Record<string, number> | number>;
+          const pumpFallback = fallback[pump];
+
+          if (pumpFallback && typeof pumpFallback === 'object') {
+            for (const [nozzleId, value] of Object.entries(pumpFallback)) {
+              if (typeof value === 'number' && Number.isFinite(value)) {
+                latestReadingByNozzle[nozzleId] = String(value);
+              }
+            }
+          } else {
+            // Backward compatibility with legacy flat nozzle storage.
+            for (const [nozzleId, value] of Object.entries(fallback)) {
+              if (typeof value === 'number' && Number.isFinite(value)) {
+                latestReadingByNozzle[nozzleId] = String(value);
+              }
+            }
+          }
+
+          if (Object.keys(latestReadingByNozzle).length > 0) {
+            resolvedSourceLabel = `Auto from previous local meter history (Pump ${pump})`;
+          }
+        } catch {
+          // Ignore malformed localStorage data.
+        }
+      }
+    }
+
+    if (Object.keys(latestReadingByNozzle).length === 0) {
+      setExpectedOmrByNozzle({});
+      setOmrSourceLabel(`No previous nozzle history found for Pump ${pump}.`);
+      setNozzles((prev) => prev.map((nozzle) => ({ ...nozzle, omr: '' })));
+      return;
+    }
+
+    setExpectedOmrByNozzle(latestReadingByNozzle);
+    setOmrSourceLabel(resolvedSourceLabel);
+    setNozzles((prev) =>
+      prev.map((nozzle) => ({
+        ...nozzle,
+        omr: latestReadingByNozzle[nozzle.id] ?? '',
+      }))
+    );
+  }, [entries, pump, shift, date]);
 
   const handleNozzleChange = (index: number, field: keyof NozzleData, value: string) => {
+    const nozzleId = nozzles[index]?.id;
+    if (field === 'omr' && nozzleId && expectedOmrByNozzle[nozzleId] !== undefined) {
+      return;
+    }
+
     const updated = [...nozzles];
     updated[index] = { ...updated[index], [field]: value };
     setNozzles(updated);
   };
+
+  const hasLockedOmrMismatch = nozzles.some((nozzle) => {
+    const expected = expectedOmrByNozzle[nozzle.id];
+    if (expected === undefined) return false;
+
+    const current = parseFloat(nozzle.omr);
+    const expectedNum = parseFloat(expected);
+    if (Number.isNaN(current) || Number.isNaN(expectedNum)) return true;
+
+    return Math.abs(current - expectedNum) > 0.0001;
+  });
+
+  const hasMissingExpectedOmr = nozzles.some((nozzle) => {
+    const expected = expectedOmrByNozzle[nozzle.id];
+    return expected !== undefined && nozzle.omr === '';
+  });
 
   // ----------------------------------------------------
   // GLOBAL CALCULATIONS (ONLY IN PARENT AS REQUESTED)
@@ -119,9 +267,9 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
   const isCashMatch = hasCashInput && Math.abs(actualCashNum - calculatedCash) < 0.01;
   const isCashMismatch = hasCashInput && !isCashMatch;
 
-  const isFullyVerified = hasAnyInputs && netMatch && isCashMatch && !hasNegativeSales && mismatchedNozzleNames.length === 0;
-  const hasErrors = hasNegativeSales || mismatchedNozzleNames.length > 0 || isCashMismatch || (!netMatch && hasAnyInputs);
-  const isEmployeeMissing = entryMode === 'employee' && employee.trim() === '';
+  const isFullyVerified = hasAnyInputs && netMatch && isCashMatch && !hasNegativeSales && mismatchedNozzleNames.length === 0 && !hasLockedOmrMismatch && !hasMissingExpectedOmr;
+  const hasErrors = hasNegativeSales || mismatchedNozzleNames.length > 0 || isCashMismatch || (!netMatch && hasAnyInputs) || hasLockedOmrMismatch || hasMissingExpectedOmr;
+  const isEmployeeMissing = employee.trim() === '';
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-28 animate-in fade-in duration-500 relative">
@@ -140,7 +288,7 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
           </div>
           <div className="flex-1">
             <h2 className={`text-xl font-bold ${isFullyVerified ? 'text-white' : hasErrors ? 'text-rose-800 dark:text-rose-200' : 'text-slate-900 dark:text-white'}`}>
-              {isFullyVerified ? 'All values verified successfully' : hasErrors ? 'Mismatch detected' : entryMode === 'bunk' ? 'Bunk Verification Pending' : 'Shift Verification Pending'}
+              {isFullyVerified ? 'All values verified successfully' : hasErrors ? 'Mismatch detected' : 'Shift Verification Pending'}
             </h2>
             
             <div className={`mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm ${isFullyVerified ? 'text-emerald-50' : hasErrors ? 'text-rose-700 dark:text-rose-300' : 'text-slate-600 dark:text-slate-400'}`}>
@@ -169,31 +317,13 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
         </div>
       </div>
 
-      {/* Mode Switcher */}
-      <div className="flex justify-center px-4 pt-2 pb-2">
-        <div className="bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl flex items-center shadow-inner border border-slate-200 dark:border-slate-700 w-full max-w-sm relative z-10">
-          <button 
-            onClick={() => setEntryMode('employee')}
-            className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${entryMode === 'employee' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow shadow-black/5 scale-100' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 scale-95 hover:scale-100'}`}
-          >
-            {entryMode === 'employee' ? '👤 Employee' : 'Employee'}
-          </button>
-          <button 
-            onClick={() => setEntryMode('bunk')}
-            className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${entryMode === 'bunk' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow shadow-black/5 scale-100' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 scale-95 hover:scale-100'}`}
-          >
-            {entryMode === 'bunk' ? '🏢 Bunk' : 'Bunk'}
-          </button>
-        </div>
-      </div>
-
       <div className="flex items-center justify-between px-2 pt-2 gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            {entryMode === 'employee' ? 'New Shift Entry' : 'New Bunk Entry'}
+            New Entry
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {entryMode === 'employee' ? 'Fill meter readings for an employee shift.' : 'Fill total meter readings for the bunk.'}
+            Fill meter readings for a shift and assigned pump.
           </p>
         </div>
       </div>
@@ -201,29 +331,10 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
       {/* Top Section */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 space-y-4">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
-          {entryMode === 'employee' ? 'Shift Details' : 'Bunk Details'}
+          Entry Details
         </h3>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-slate-400" /> Bunk
-            </label>
-            <select 
-              value={bunk}
-              onChange={e => setBunk(e.target.value)}
-              className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-            >
-              <option value="Bunk 1">Bunk 1</option>
-              <option value="Bunk 2">Bunk 2</option>
-              <option value="Bunk 3">Bunk 3</option>
-              <option value="Bunk 4">Bunk 4</option>
-              <option value="Bunk 5">Bunk 5</option>
-              <option value="Bunk 5">Bunk 6</option>
-              <option value="Bunk 5">Bunk 7</option>
-            </select>
-          </div>
-
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
               <Calendar className="w-4 h-4 text-slate-400" /> Date
@@ -236,37 +347,48 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
             />
           </div>
 
-          {entryMode === 'employee' && (
-            <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-slate-400" /> Shift
-              </label>
-              <select 
-                value={shift}
-                onChange={e => setShift(e.target.value)}
-                className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              >
-                <option value="A">Shift A (Morning)</option>
-                <option value="B">Shift B (Evening)</option>
-                <option value="C">Shift C (Night)</option>
-              </select>
-            </div>
-          )}
+          <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-slate-400" /> Shift
+            </label>
+            <select 
+              value={shift}
+              onChange={e => setShift(e.target.value)}
+              className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+            >
+              <option value="A">Shift A</option>
+              <option value="B">Shift B</option>
+              <option value="C">Shift C</option>
+            </select>
+          </div>
 
-          {entryMode === 'employee' && (
-            <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                <User className="w-4 h-4 text-slate-400" /> Employee Name
-              </label>
-              <input 
-                type="text" 
-                placeholder="Enter name"
-                value={employee}
-                onChange={e => setEmployee(e.target.value)}
-                className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
-              />
-            </div>
-          )}
+          <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-slate-400" /> Pump
+            </label>
+            <select 
+              value={pump}
+              onChange={e => setPump(e.target.value)}
+              className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+            >
+              {PUMPS.map((pump) => (
+                <option key={pump} value={pump}>Pump {pump}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+              <User className="w-4 h-4 text-slate-400" /> Employee Name
+            </label>
+            <input 
+              type="text" 
+              placeholder="Enter name"
+              value={employee}
+              onChange={e => setEmployee(e.target.value)}
+              className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
+            />
+          </div>
         </div>
       </div>
 
@@ -332,11 +454,25 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
               isMismatch={props.isMismatch}
               hasInputs={props.hasInputs}
               isNegativeSales={props.isNegativeSales}
+              isOmrLocked={expectedOmrByNozzle[nozzle.id] !== undefined}
+              omrHelpText={expectedOmrByNozzle[nozzle.id] !== undefined ? omrSourceLabel : ''}
               onChange={(field, value) => handleNozzleChange(index, field, value)} 
             />
           );
         })}
       </div>
+
+      {(hasLockedOmrMismatch || hasMissingExpectedOmr) && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-300">
+          OMR mismatch detected. Locked OMR values must match the previous closing readings for this pump.
+        </div>
+      )}
+
+      {Object.keys(expectedOmrByNozzle).length === 0 && omrSourceLabel && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+          {omrSourceLabel}
+        </div>
+      )}
 
       {/* Fuel Sales Summary Card */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
@@ -397,10 +533,11 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
             try {
               setIsSubmitting(true);
               await onAddEntry({
-                bunk,
+                bunk: 'Bunk 1',
                 date,
-                shift: entryMode === 'bunk' ? 'Day End' : shift,
-                employee: entryMode === 'bunk' ? 'Bunk Total' : employee,
+                shift,
+                pump,
+                employee,
                 speed: totalSpeed,
                 ms: totalMS,
                 hsd: totalHSD,
@@ -408,7 +545,42 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
                 phonePe: phonePeNum,
                 fleetCard: fleetCardNum,
                 expense: expenseNum,
+                nozzleReadings: nozzles.map((nozzle) => ({
+                  nozzleId: nozzle.id,
+                  nozzleName: nozzle.name,
+                  omr: parseFloat(nozzle.omr) || 0,
+                  cmr: parseFloat(nozzle.cmr) || 0,
+                  testing: parseFloat(nozzle.testing) || 0,
+                  writtenNet: parseFloat(nozzle.writtenNet) || 0,
+                })),
               });
+
+              const latestMeters = nozzles.reduce<Record<string, number>>((acc, nozzle) => {
+                const cmrNum = parseFloat(nozzle.cmr);
+                if (!Number.isNaN(cmrNum) && cmrNum >= 0) {
+                  acc[nozzle.id] = cmrNum;
+                }
+                return acc;
+              }, {});
+
+              const historyRaw = window.localStorage.getItem(METER_HISTORY_KEY);
+              let historyByPump: Record<string, Record<string, number>> = {};
+
+              if (historyRaw) {
+                try {
+                  const parsed = JSON.parse(historyRaw) as Record<string, Record<string, number> | number>;
+                  for (const [key, value] of Object.entries(parsed)) {
+                    if (value && typeof value === 'object') {
+                      historyByPump[key] = value as Record<string, number>;
+                    }
+                  }
+                } catch {
+                  historyByPump = {};
+                }
+              }
+
+              historyByPump[pump] = latestMeters;
+              window.localStorage.setItem(METER_HISTORY_KEY, JSON.stringify(historyByPump));
             } finally {
               setIsSubmitting(false);
             }

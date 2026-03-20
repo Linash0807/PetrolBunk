@@ -140,7 +140,7 @@ function DashboardOverview({
                 >
                   <div>
                     <p className="font-semibold text-slate-900 dark:text-slate-100">{entry.employee || 'Unknown Employee'}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{entry.bunk} • Shift {entry.shift}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{entry.bunk} • Shift {entry.shift} • Pump {entry.pump || '-'}</p>
                   </div>
                   <p className="text-slate-600 dark:text-slate-300">{entry.date}</p>
                   <p className="font-semibold text-blue-700 dark:text-blue-400">{shiftLiters.toFixed(2)} L</p>
@@ -262,7 +262,7 @@ function App() {
   return (
     <DashboardLayout activePath={currentPath} onNavigate={navigateTo}>
       {currentPath === '/' && <DashboardOverview entries={entries} onNavigate={navigateTo} />}
-      {currentPath === '/new-entry' && <NewEntryForm onAddEntry={handleAddEntry} />}
+      {currentPath === '/new-entry' && <NewEntryForm onAddEntry={handleAddEntry} entries={entries} />}
       {currentPath === '/reports' && <Reports entries={entries} />}
     </DashboardLayout>
   );
