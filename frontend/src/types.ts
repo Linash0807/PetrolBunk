@@ -9,4 +9,5 @@ export interface ShiftEntry {
   cash: number;
   phonePe: number;
   fleetCard: number;
+  expense: number;
 }

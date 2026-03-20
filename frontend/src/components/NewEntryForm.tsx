@@ -36,6 +36,7 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
   );
 
   const [phonePe, setPhonePe] = useState('');
+  const [expense, setexpense] = useState(''); 
   const [fleetCard, setFleetCard] = useState('');
   const [actualCash, setActualCash] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -102,6 +103,7 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
   const phonePeNum = parseFloat(phonePe) || 0;
   const fleetCardNum = parseFloat(fleetCard) || 0;
   const actualCashNum = parseFloat(actualCash);
+  const expenseNum = parseFloat(expense) || 0;
   const hasCashInput = actualCash !== '' && !Number.isNaN(actualCashNum);
   
   const speedPriceNum = parseFloat(prices.Speed) || 0;
@@ -109,7 +111,7 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
   const hsdPriceNum = parseFloat(prices.HSD) || 0;
 
   const totalAmount = Math.round(((totalSpeed * speedPriceNum) + (totalMS * msPriceNum) + (totalHSD * hsdPriceNum)) * 100) / 100;
-  const calculatedCash = Math.round(Math.max(0, totalAmount - phonePeNum - fleetCardNum) * 100) / 100;
+  const calculatedCash = Math.round(Math.max(0, totalAmount - phonePeNum - fleetCardNum - expenseNum) * 100) / 100;
 
   // Verification Logic
   const hasAnyInputs = nozzles.some(n => n.cmr !== '' || n.writtenNet !== '');
@@ -359,6 +361,7 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
         totalHSD={totalHSD}
         prices={{ Speed: speedPriceNum, MS: msPriceNum, HSD: hsdPriceNum }}
         phonePe={phonePe} setPhonePe={setPhonePe}
+        expense={expense} setexpense={setexpense}
         fleetCard={fleetCard} setFleetCard={setFleetCard}
         actualCash={actualCash} setActualCash={setActualCash}
         calculatedCash={calculatedCash} totalAmount={totalAmount}
@@ -401,6 +404,7 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
                 cash: actualCashNum,
                 phonePe: phonePeNum,
                 fleetCard: fleetCardNum,
+                expense: expenseNum,
               });
             } finally {
               setIsSubmitting(false);
