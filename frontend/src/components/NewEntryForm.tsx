@@ -351,9 +351,7 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
 
       {/* Sticky Bottom Bar */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex gap-3 z-50 lg:max-w-7xl lg:mx-auto">
-        <button className="flex-1 py-4 px-6 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all">
-          Save Draft
-        </button>
+        
         <button 
           disabled={!isFullyVerified || isSubmitting}
           onClick={async () => {
