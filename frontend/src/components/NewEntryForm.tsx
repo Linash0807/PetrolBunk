@@ -55,7 +55,6 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
       if (entry.pump) return entry.pump === pump;
       return entry.shift === pump;
     });
-    const entriesWithNozzleHistory = entries.filter((entry) => (entry.nozzleReadings || []).length > 0);
 
     const currentShiftRank = SHIFT_SEQUENCE[shift] ?? 0;
     const nearestPreviousEntry = entriesByPump
@@ -100,61 +99,10 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
       }
     }
 
-    if (Object.keys(latestReadingByNozzle).length === 0 && entriesWithNozzleHistory.length > 0) {
-      const fallbackEntry = [...entriesWithNozzleHistory].sort((a, b) => {
-        if (a.date !== b.date) return b.date.localeCompare(a.date);
-        const aCreatedAt = (a as ShiftEntry & { createdAt?: string }).createdAt || '';
-        const bCreatedAt = (b as ShiftEntry & { createdAt?: string }).createdAt || '';
-        return bCreatedAt.localeCompare(aCreatedAt);
-      })[0];
-
-      for (const reading of fallbackEntry.nozzleReadings || []) {
-        if (!(reading.nozzleId in latestReadingByNozzle)) {
-          latestReadingByNozzle[reading.nozzleId] = String(reading.cmr);
-        }
-      }
-
-      if (Object.keys(latestReadingByNozzle).length > 0) {
-        const fallbackPump = fallbackEntry.pump || '-';
-        resolvedSourceLabel = `Auto fallback from latest entry (Pump ${fallbackPump})`;
-      }
-    }
-
-    if (Object.keys(latestReadingByNozzle).length === 0) {
-      const fallbackRaw = window.localStorage.getItem(METER_HISTORY_KEY);
-      if (fallbackRaw) {
-        try {
-          const fallback = JSON.parse(fallbackRaw) as Record<string, Record<string, number> | number>;
-          const pumpFallback = fallback[pump];
-
-          if (pumpFallback && typeof pumpFallback === 'object') {
-            for (const [nozzleId, value] of Object.entries(pumpFallback)) {
-              if (typeof value === 'number' && Number.isFinite(value)) {
-                latestReadingByNozzle[nozzleId] = String(value);
-              }
-            }
-          } else {
-            // Backward compatibility with legacy flat nozzle storage.
-            for (const [nozzleId, value] of Object.entries(fallback)) {
-              if (typeof value === 'number' && Number.isFinite(value)) {
-                latestReadingByNozzle[nozzleId] = String(value);
-              }
-            }
-          }
-
-          if (Object.keys(latestReadingByNozzle).length > 0) {
-            resolvedSourceLabel = `Auto from previous local meter history (Pump ${pump})`;
-          }
-        } catch {
-          // Ignore malformed localStorage data.
-        }
-      }
-    }
-
     if (Object.keys(latestReadingByNozzle).length === 0) {
       setExpectedOmrByNozzle({});
-      setOmrSourceLabel(`No previous nozzle history found for Pump ${pump}.`);
-      setNozzles((prev) => prev.map((nozzle) => ({ ...nozzle, omr: '' })));
+      setOmrSourceLabel(`No previous server entry found for Pump ${pump}. OMR set to 0.`);
+      setNozzles((prev) => prev.map((nozzle) => ({ ...nozzle, omr: '0' })));
       return;
     }
 
