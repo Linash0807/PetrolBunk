@@ -171,7 +171,10 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
   const handleNozzleChange = (index: number, field: keyof NozzleData, value: string) => {
     const nozzleId = nozzles[index]?.id;
     if (field === 'omr' && nozzleId && expectedOmrByNozzle[nozzleId] !== undefined) {
-      return;
+      const expectedNum = parseFloat(expectedOmrByNozzle[nozzleId]);
+      if (!Number.isNaN(expectedNum) && expectedNum > 0) {
+        return;
+      }
     }
 
     const updated = [...nozzles];
@@ -185,6 +188,7 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
 
     const current = parseFloat(nozzle.omr);
     const expectedNum = parseFloat(expected);
+    if (!Number.isNaN(expectedNum) && expectedNum === 0) return false;
     if (Number.isNaN(current) || Number.isNaN(expectedNum)) return true;
 
     return Math.abs(current - expectedNum) > 0.0001;
@@ -192,7 +196,12 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
 
   const hasMissingExpectedOmr = nozzles.some((nozzle) => {
     const expected = expectedOmrByNozzle[nozzle.id];
-    return expected !== undefined && nozzle.omr === '';
+    if (expected === undefined) return false;
+
+    const expectedNum = parseFloat(expected);
+    if (!Number.isNaN(expectedNum) && expectedNum === 0) return false;
+
+    return nozzle.omr === '';
   });
 
   // ----------------------------------------------------
@@ -444,6 +453,8 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
         
         {nozzles.map((nozzle, index) => {
           const props = nozzleProps[index];
+          const expectedOmrNum = parseFloat(expectedOmrByNozzle[nozzle.id] ?? '');
+          const isOmrLocked = expectedOmrByNozzle[nozzle.id] !== undefined && !Number.isNaN(expectedOmrNum) && expectedOmrNum > 0;
           return (
             <NozzleCard 
               key={nozzle.id} 
@@ -454,8 +465,8 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
               isMismatch={props.isMismatch}
               hasInputs={props.hasInputs}
               isNegativeSales={props.isNegativeSales}
-              isOmrLocked={expectedOmrByNozzle[nozzle.id] !== undefined}
-              omrHelpText={expectedOmrByNozzle[nozzle.id] !== undefined ? omrSourceLabel : ''}
+              isOmrLocked={isOmrLocked}
+              omrHelpText={isOmrLocked ? omrSourceLabel : ''}
               onChange={(field, value) => handleNozzleChange(index, field, value)} 
             />
           );
