@@ -157,9 +157,24 @@ function DashboardOverview({
 
 import type { ShiftEntry } from './types';
 
+const validPaths = ['/', '/new-entry', '/reports'] as const;
+
+function normalizePath(path: string): string {
+  return validPaths.includes(path as (typeof validPaths)[number]) ? path : '/';
+}
+
 function App() {
-  const [currentPath, setCurrentPath] = useState('/');
+  const [currentPath, setCurrentPath] = useState(() => normalizePath(window.location.pathname));
   const [entries, setEntries] = useState<ShiftEntry[]>([]);
+
+  const navigateTo = (path: string) => {
+    const nextPath = normalizePath(path);
+    setCurrentPath(nextPath);
+
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({}, '', nextPath);
+    }
+  };
 
   const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
   const apiBaseUrls = Array.from(
@@ -190,6 +205,12 @@ function App() {
   };
 
   useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(normalizePath(window.location.pathname));
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
     const loadEntries = async () => {
       try {
         const response = await fetchFromApi('/shift-entries');
@@ -207,6 +228,10 @@ function App() {
     };
 
     loadEntries();
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, []);
 
   const handleAddEntry = async (entry: ShiftEntry) => {
@@ -231,12 +256,12 @@ function App() {
 
     setEntries((prev) => [result.data, ...prev]);
     alert('Entry saved to MongoDB successfully!');
-    setCurrentPath('/reports');
+    navigateTo('/reports');
   };
 
   return (
-    <DashboardLayout activePath={currentPath} onNavigate={setCurrentPath}>
-      {currentPath === '/' && <DashboardOverview entries={entries} onNavigate={setCurrentPath} />}
+    <DashboardLayout activePath={currentPath} onNavigate={navigateTo}>
+      {currentPath === '/' && <DashboardOverview entries={entries} onNavigate={navigateTo} />}
       {currentPath === '/new-entry' && <NewEntryForm onAddEntry={handleAddEntry} />}
       {currentPath === '/reports' && <Reports entries={entries} />}
     </DashboardLayout>
