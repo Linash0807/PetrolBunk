@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, MapPin, Clock, User, CheckCircle2, AlertTriangle, ShieldCheck, XCircle } from 'lucide-react';
+import { Calendar, MapPin, Clock, User, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { NozzleCard, type NozzleData } from './NozzleCard';
 import { PaymentSection } from './PaymentSection';
 import { VerificationPanel } from './VerificationPanel';
