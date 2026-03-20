@@ -218,6 +218,9 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
               <option value="Bunk 2">Bunk 2</option>
               <option value="Bunk 3">Bunk 3</option>
               <option value="Bunk 4">Bunk 4</option>
+              <option value="Bunk 5">Bunk 5</option>
+              <option value="Bunk 5">Bunk 6</option>
+              <option value="Bunk 5">Bunk 7</option>
             </select>
           </div>
 
