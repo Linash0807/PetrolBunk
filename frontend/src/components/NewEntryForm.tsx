@@ -119,6 +119,7 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
 
   const isFullyVerified = hasAnyInputs && netMatch && isCashMatch && !hasNegativeSales && mismatchedNozzleNames.length === 0;
   const hasErrors = hasNegativeSales || mismatchedNozzleNames.length > 0 || isCashMismatch || (!netMatch && hasAnyInputs);
+  const isEmployeeMissing = entryMode === 'employee' && employee.trim() === '';
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-28 animate-in fade-in duration-500 relative">
@@ -380,8 +381,13 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
       <div className="fixed bottom-3 left-100 right-100 p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex gap-3 z-50 lg:max-w-7xl lg:mx-auto rounded-t-2xl">
         
         <button 
-          disabled={!isFullyVerified || isSubmitting}
+          disabled={!isFullyVerified || isSubmitting || isEmployeeMissing}
           onClick={async () => {
+            if (isEmployeeMissing) {
+              alert('Please enter employee name before submitting.');
+              return;
+            }
+
             try {
               setIsSubmitting(true);
               await onAddEntry({

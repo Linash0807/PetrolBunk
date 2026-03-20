@@ -16,7 +16,7 @@ const shiftEntrySchema = new mongoose.Schema(
     shift: {
       type: String,
       required: true,
-      enum: ['A', 'B', 'C'],
+      enum: ['A', 'B', 'C', 'Day End'],
     },
     employee: {
       type: String,

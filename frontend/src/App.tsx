@@ -192,11 +192,13 @@ function App() {
       body: JSON.stringify(entry),
     });
 
+    const result = await response.json().catch(() => null);
+
     if (!response.ok) {
-      throw new Error('Failed to save entry');
+      const backendMessage = result?.message || result?.error;
+      throw new Error(backendMessage ? `Failed to save entry: ${backendMessage}` : 'Failed to save entry');
     }
 
-    const result = await response.json();
     if (!result?.success || !result?.data) {
       throw new Error('Invalid response while saving entry');
     }
