@@ -161,12 +161,38 @@ function App() {
   const [currentPath, setCurrentPath] = useState('/');
   const [entries, setEntries] = useState<ShiftEntry[]>([]);
 
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+  const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+  const apiBaseUrls = Array.from(
+    new Set([
+      configuredApiBaseUrl || 'http://localhost:5000/api',
+      'https://petrolbunk-backend.onrender.com/api',
+    ])
+  );
+
+  const fetchFromApi = async (path: string, init?: RequestInit) => {
+    let lastError: unknown = null;
+
+    for (const baseUrl of apiBaseUrls) {
+      try {
+        const response = await fetch(`${baseUrl}${path}`, init);
+
+        if (baseUrl !== apiBaseUrls[0]) {
+          console.warn(`Primary API unavailable, using fallback: ${baseUrl}`);
+        }
+
+        return response;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error('Failed to connect to API');
+  };
 
   useEffect(() => {
     const loadEntries = async () => {
       try {
-        const response = await fetch(`${apiBaseUrl}/shift-entries`);
+        const response = await fetchFromApi('/shift-entries');
         if (!response.ok) {
           throw new Error('Failed to fetch entries');
         }
@@ -181,10 +207,10 @@ function App() {
     };
 
     loadEntries();
-  }, [apiBaseUrl]);
+  }, []);
 
   const handleAddEntry = async (entry: ShiftEntry) => {
-    const response = await fetch(`${apiBaseUrl}/shift-entries`, {
+    const response = await fetchFromApi('/shift-entries', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
