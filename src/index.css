@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-500: #3b82f6; /* Blue 500 */
+}
+
+/* Custom premium styles */
+@layer utilities {
+  .glass-effect {
+    @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border border-white/20 dark:border-slate-700/50 shadow-sm;
+  }
+}
+
+body {
+  @apply bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased;
+}
