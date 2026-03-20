@@ -1,19 +1,39 @@
 import { useState } from 'react';
-import { MapPin, Printer, Calculator, Fuel, CreditCard, Banknote, History, Zap } from 'lucide-react';
+import { MapPin, Printer, Fuel, CreditCard, Banknote, History, Zap } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { ShiftEntry } from '../types';
 
-const BUNKS = ['Bunk 1', 'Bunk 2', 'Bunk 3', 'Bunk 4', 'Bunk 5', 'Bunk 6', 'Bunk 7'];
+const BUNKS = ['All', 'Bunk 1', 'Bunk 2', 'Bunk 3', 'Bunk 4', 'Bunk 5', 'Bunk 6', 'Bunk 7'];
 
 export function Reports({ entries }: { entries: ShiftEntry[] }) {
-  const [selectedBunk, setSelectedBunk] = useState<string>('Bunk 1');
-  const [testingValue, setTestingValue] = useState<string>('0');
-  const reportDate = new Date().toLocaleDateString('en-GB');
-  const bunkNumber = selectedBunk.replace(/\D+/g, '') || selectedBunk;
+  const [selectedBunk, setSelectedBunk] = useState<string>('All');
+  const [dateFilter, setDateFilter] = useState<'today' | 'yesterday' | 'custom'>('today');
+  const [customDate, setCustomDate] = useState<string>('');
+  
+  const todayDate = new Date();
+  const localToday = new Date(todayDate.getTime() - todayDate.getTimezoneOffset() * 60000)
+    .toISOString()
+    .split('T')[0];
 
-  const testingNum = parseFloat(testingValue) || 0;
-  const currentData = entries.filter(e => e.bunk === selectedBunk);
+  const yesterdayDate = new Date(todayDate.getTime() - 24 * 60 * 60 * 1000);
+  const localYesterday = new Date(yesterdayDate.getTime() - yesterdayDate.getTimezoneOffset() * 60000)
+    .toISOString()
+    .split('T')[0];
+
+  let activeDate = localToday;
+  if (dateFilter === 'yesterday') activeDate = localYesterday;
+  if (dateFilter === 'custom') activeDate = customDate;
+
+  const bunkEntries = selectedBunk === 'All' ? entries : entries.filter(e => e.bunk === selectedBunk);
+
+  const reportDateISO = activeDate;
+  const reportDate = reportDateISO ? new Date(reportDateISO).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB');
+  const bunkNumber = selectedBunk === 'All' ? 'All' : selectedBunk.replace(/\D+/g, '') || selectedBunk;
+
+  const currentData = dateFilter === 'custom' && !customDate 
+    ? [] 
+    : bunkEntries.filter(e => e.date === activeDate);
 
   // Calculate Totals
   const totalSpeed = currentData.reduce((acc, curr) => acc + curr.speed, 0);
@@ -21,7 +41,7 @@ export function Reports({ entries }: { entries: ShiftEntry[] }) {
   const totalHSD = currentData.reduce((acc, curr) => acc + curr.hsd, 0);
 
   const grossTotalLiters = totalSpeed + totalMS + totalHSD;
-  const netTotalLiters = Math.max(0, grossTotalLiters - testingNum);
+  const netTotalLiters = grossTotalLiters;
 
   const totalCash = currentData.reduce((acc, curr) => acc + curr.cash, 0);
   const totalPhonePe = currentData.reduce((acc, curr) => acc + curr.phonePe, 0);
@@ -30,7 +50,7 @@ export function Reports({ entries }: { entries: ShiftEntry[] }) {
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    const fileDate = new Date().toISOString().split('T')[0];
+    const fileDate = reportDateISO || new Date().toISOString().split('T')[0];
     const safeBunk = selectedBunk.toLowerCase().replace(/\s+/g, '-');
     const fileName = `${safeBunk}-${fileDate}.pdf`;
 
@@ -113,12 +133,14 @@ export function Reports({ entries }: { entries: ShiftEntry[] }) {
 
       {/* Controls Section (Hidden entirely in print, OR maybe keep values visible but not inputs? Custom print styling applied) */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 space-y-4 print:shadow-none print:border-none print:p-0 print:mb-2">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider mb-4 border-b border-slate-100 dark:border-slate-800 pb-2 print:hidden">
-          Configuration
-        </h3>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 border-b border-slate-100 dark:border-slate-800 pb-2 print:hidden gap-4">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">
+            Configuration
+          </h3>
+        </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="space-y-1.5 print:hidden">
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="flex-1 space-y-1.5 print:hidden">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
               <MapPin className="w-4 h-4 text-slate-400" /> Select Bunk
             </label>
@@ -133,24 +155,38 @@ export function Reports({ entries }: { entries: ShiftEntry[] }) {
             </select>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="flex-1 space-y-1.5 print:hidden">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-              <Calculator className="w-4 h-4 text-slate-400" /> Daily Testing Subtraction (Liters)
+              <History className="w-4 h-4 text-slate-400" /> Date Filter
             </label>
-            <div className="relative print:hidden">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">L</span>
+            <select 
+              value={dateFilter}
+              onChange={(e) => {
+                setDateFilter(e.target.value as any);
+                if (e.target.value !== 'custom') setCustomDate('');
+              }}
+              className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-medium"
+            >
+              <option value="today">Today ({new Date(localToday).toLocaleDateString('en-GB')})</option>
+              <option value="yesterday">Yesterday ({new Date(localYesterday).toLocaleDateString('en-GB')})</option>
+              <option value="custom">Custom Date</option>
+            </select>
+          </div>
+
+          {dateFilter === 'custom' && (
+            <div className="flex-1 space-y-1.5 print:hidden animate-in fade-in zoom-in-95 duration-200">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                <History className="w-4 h-4 text-slate-400" /> Select Date
+              </label>
               <input 
-                type="number"
-                value={testingValue}
-                onChange={(e) => setTestingValue(e.target.value)}
-                placeholder="0.00"
-                className="w-full h-12 pl-8 pr-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all text-rose-700 dark:text-rose-400 font-bold"
+                type="date"
+                value={customDate}
+                max={localToday}
+                onChange={(e) => setCustomDate(e.target.value)}
+                className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
               />
             </div>
-            <div className="hidden print:block text-[11px] font-semibold text-black">
-              Testing Liters Deducted: {testingNum.toFixed(2)} L
-            </div>
-          </div>
+          )}
         </div>
       </div>
 

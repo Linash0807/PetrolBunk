@@ -16,6 +16,7 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [shift, setShift] = useState('A');
   const [employee, setEmployee] = useState('');
+  const [entryMode, setEntryMode] = useState<'employee' | 'bunk'>('employee');
 
   const [prices, setPrices] = useState({
     Speed: '117.78',
@@ -136,7 +137,7 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
           </div>
           <div className="flex-1">
             <h2 className={`text-xl font-bold ${isFullyVerified ? 'text-white' : hasErrors ? 'text-rose-800 dark:text-rose-200' : 'text-slate-900 dark:text-white'}`}>
-              {isFullyVerified ? 'All values verified successfully' : hasErrors ? 'Mismatch detected' : 'Shift Verification Pending'}
+              {isFullyVerified ? 'All values verified successfully' : hasErrors ? 'Mismatch detected' : entryMode === 'bunk' ? 'Bunk Verification Pending' : 'Shift Verification Pending'}
             </h2>
             
             <div className={`mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm ${isFullyVerified ? 'text-emerald-50' : hasErrors ? 'text-rose-700 dark:text-rose-300' : 'text-slate-600 dark:text-slate-400'}`}>
@@ -165,18 +166,40 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between px-2">
+      {/* Mode Switcher */}
+      <div className="flex justify-center px-4 pt-2 pb-2">
+        <div className="bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl flex items-center shadow-inner border border-slate-200 dark:border-slate-700 w-full max-w-sm relative z-10">
+          <button 
+            onClick={() => setEntryMode('employee')}
+            className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${entryMode === 'employee' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow shadow-black/5 scale-100' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 scale-95 hover:scale-100'}`}
+          >
+            {entryMode === 'employee' ? '👤 Employee' : 'Employee'}
+          </button>
+          <button 
+            onClick={() => setEntryMode('bunk')}
+            className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${entryMode === 'bunk' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow shadow-black/5 scale-100' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 scale-95 hover:scale-100'}`}
+          >
+            {entryMode === 'bunk' ? '🏢 Bunk' : 'Bunk'}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between px-2 pt-2 gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">New Shift Entry</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            {entryMode === 'employee' ? 'New Shift Entry' : 'New Bunk Entry'}
+          </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Fill meter readings to verify shift totals.
+            {entryMode === 'employee' ? 'Fill meter readings for an employee shift.' : 'Fill total meter readings for the bunk.'}
           </p>
         </div>
       </div>
 
       {/* Top Section */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Shift Details</h3>
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
+          {entryMode === 'employee' ? 'Shift Details' : 'Bunk Details'}
+        </h3>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
@@ -207,33 +230,37 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-slate-400" /> Shift
-            </label>
-            <select 
-              value={shift}
-              onChange={e => setShift(e.target.value)}
-              className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-            >
-              <option value="A">Shift A (Morning)</option>
-              <option value="B">Shift B (Evening)</option>
-              <option value="C">Shift C (Night)</option>
-            </select>
-          </div>
+          {entryMode === 'employee' && (
+            <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-slate-400" /> Shift
+              </label>
+              <select 
+                value={shift}
+                onChange={e => setShift(e.target.value)}
+                className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              >
+                <option value="A">Shift A (Morning)</option>
+                <option value="B">Shift B (Evening)</option>
+                <option value="C">Shift C (Night)</option>
+              </select>
+            </div>
+          )}
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-              <User className="w-4 h-4 text-slate-400" /> Employee Name
-            </label>
-            <input 
-              type="text" 
-              placeholder="Enter name"
-              value={employee}
-              onChange={e => setEmployee(e.target.value)}
-              className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
-            />
-          </div>
+          {entryMode === 'employee' && (
+            <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                <User className="w-4 h-4 text-slate-400" /> Employee Name
+              </label>
+              <input 
+                type="text" 
+                placeholder="Enter name"
+                value={employee}
+                onChange={e => setEmployee(e.target.value)}
+                className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -360,8 +387,8 @@ export function NewEntryForm({ onAddEntry }: NewEntryFormProps) {
               await onAddEntry({
                 bunk,
                 date,
-                shift,
-                employee,
+                shift: entryMode === 'bunk' ? 'Day End' : shift,
+                employee: entryMode === 'bunk' ? 'Bunk Total' : employee,
                 speed: totalSpeed,
                 ms: totalMS,
                 hsd: totalHSD,
