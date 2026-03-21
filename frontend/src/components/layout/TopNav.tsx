@@ -1,4 +1,4 @@
-import { Menu, Droplet, LogOut } from 'lucide-react';
+import { Menu, Droplet, LogOut,User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface TopNavProps {
@@ -41,7 +41,7 @@ export function TopNav({ onMenuClick }: TopNavProps) {
           <span className="hidden sm:inline">Logout</span>
         </button>
         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/40 dark:to-indigo-900/40 flex items-center justify-center border border-blue-200 dark:border-blue-800 cursor-pointer">
-          <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">AD</span>
+          <User className="w-4 h-4" />
         </div>
       </div>
     </header>
