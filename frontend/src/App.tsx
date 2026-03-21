@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from './context/AuthContext';
+import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { NewEntryForm } from './components/NewEntryForm';
 import { Reports } from './components/Reports';
@@ -164,6 +166,7 @@ function normalizePath(path: string): string {
 }
 
 function App() {
+  const { token } = useAuth();
   const [currentPath, setCurrentPath] = useState(() => normalizePath(window.location.pathname));
   const [entries, setEntries] = useState<ShiftEntry[]>([]);
 
@@ -187,9 +190,19 @@ function App() {
   const fetchFromApi = async (path: string, init?: RequestInit) => {
     let lastError: unknown = null;
 
+    const headers: Record<string, string> = { 
+      ...(init?.headers as Record<string, string> || {})
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     for (const baseUrl of apiBaseUrls) {
       try {
-        const response = await fetch(`${baseUrl}${path}`, init);
+        const response = await fetch(`${baseUrl}${path}`, {
+          ...init,
+          headers
+        });
 
         if (baseUrl !== apiBaseUrls[0]) {
           console.warn(`Primary API unavailable, using fallback: ${baseUrl}`);
@@ -260,11 +273,13 @@ function App() {
   };
 
   return (
-    <DashboardLayout activePath={currentPath} onNavigate={navigateTo}>
-      {currentPath === '/' && <DashboardOverview entries={entries} onNavigate={navigateTo} />}
-      {currentPath === '/new-entry' && <NewEntryForm onAddEntry={handleAddEntry} entries={entries} />}
-      {currentPath === '/reports' && <Reports entries={entries} />}
-    </DashboardLayout>
+    <ProtectedRoute onNavigate={navigateTo}>
+      <DashboardLayout activePath={currentPath} onNavigate={navigateTo}>
+        {currentPath === '/' && <DashboardOverview entries={entries} onNavigate={navigateTo} />}
+        {currentPath === '/new-entry' && <NewEntryForm onAddEntry={handleAddEntry} entries={entries} />}
+        {currentPath === '/reports' && <Reports entries={entries} />}
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 }
 

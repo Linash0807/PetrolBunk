@@ -7,6 +7,8 @@ import dotenv from 'dotenv';
 import pumpEntryRoutes from './routes/pumpEntries.js';
 import paymentRoutes from './routes/payments.js';
 import shiftEntryRoutes from './routes/shiftEntries.js';
+import authRoutes from './routes/auth.js';
+import authMiddleware from './middleware/authMiddleware.js';
 
 // Load environment variables
 dotenv.config();
@@ -24,9 +26,12 @@ mongoose.connect(process.env.MONGODB_URI)
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
-app.use('/api/pump-entries', pumpEntryRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/shift-entries', shiftEntryRoutes);
+app.use('/api/auth', authRoutes);
+
+// Protected routes
+app.use('/api/pump-entries', authMiddleware, pumpEntryRoutes);
+app.use('/api/payments', authMiddleware, paymentRoutes);
+app.use('/api/shift-entries', authMiddleware, shiftEntryRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

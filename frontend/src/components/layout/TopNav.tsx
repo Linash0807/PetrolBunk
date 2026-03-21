@@ -1,10 +1,13 @@
-import { Menu, Droplet } from 'lucide-react';
+import { Menu, Droplet, LogOut } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface TopNavProps {
   onMenuClick: () => void;
 }
 
 export function TopNav({ onMenuClick }: TopNavProps) {
+  const { logout } = useAuth();
+
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between px-4 glass-effect md:px-8 print:hidden">
       <div className="flex items-center gap-3">
@@ -29,6 +32,14 @@ export function TopNav({ onMenuClick }: TopNavProps) {
       </div>
 
       <div className="flex items-center gap-4">
+        <button
+          onClick={logout}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+          title="Sign out"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="hidden sm:inline">Logout</span>
+        </button>
         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/40 dark:to-indigo-900/40 flex items-center justify-center border border-blue-200 dark:border-blue-800 cursor-pointer">
           <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">AD</span>
         </div>
