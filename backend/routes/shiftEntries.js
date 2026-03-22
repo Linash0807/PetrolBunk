@@ -110,4 +110,44 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+router.put('/:id', async (req, res) => {
+  try {
+    const payload = {
+      ...req.body,
+      bunk: String(req.body?.bunk || 'Bunk 1').trim(),
+      date: String(req.body?.date || '').trim(),
+      shift: normalizeShift(req.body?.shift),
+      pump: normalizePump(req.body?.pump),
+      employee: String(req.body?.employee || '').trim(),
+      speed: toNumber(req.body?.speed),
+      ms: toNumber(req.body?.ms),
+      hsd: toNumber(req.body?.hsd),
+      cash: toNumber(req.body?.cash),
+      phonePe: toNumber(req.body?.phonePe),
+      fleetCard: toNumber(req.body?.fleetCard),
+      expense: toNumber(req.body?.expense) || 0,
+      nozzleReadings: normalizeNozzleReadings(req.body?.nozzleReadings),
+    };
+
+    const updatedEntry = await ShiftEntry.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true });
+    
+    if (!updatedEntry) {
+      return res.status(404).json({ success: false, error: 'Shift entry not found' });
+    }
+
+    res.json({ success: true, data: updatedEntry });
+  } catch (error) {
+    const validationErrors = error?.errors
+      ? Object.values(error.errors).map((item) => item.message)
+      : [];
+
+    res.status(400).json({
+      success: false,
+      error: 'Failed to update shift entry',
+      message: error.message,
+      validationErrors,
+    });
+  }
+});
+
 export default router;

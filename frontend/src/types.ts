@@ -8,6 +8,7 @@ export interface NozzleReading {
 }
 
 export interface ShiftEntry {
+  _id?: string;
   bunk: string;
   date: string;
   shift: string;

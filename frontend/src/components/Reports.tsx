@@ -1,12 +1,18 @@
 import { useState } from 'react';
-import { MapPin, Printer, Fuel, CreditCard, Banknote, History, Zap } from 'lucide-react';
+import { MapPin, Printer, Fuel, CreditCard, Banknote, History, Zap, Pencil, Trash2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { ShiftEntry } from '../types';
 
 const BUNKS = ['All', 'Bunk 1', 'Bunk 2', 'Bunk 3', 'Bunk 4', 'Bunk 5', 'Bunk 6', 'Bunk 7'];
 
-export function Reports({ entries }: { entries: ShiftEntry[] }) {
+interface ReportsProps {
+  entries: ShiftEntry[];
+  onEditEntry?: (entry: ShiftEntry) => void;
+  onDeleteEntry?: (id: string) => void;
+}
+
+export function Reports({ entries, onEditEntry, onDeleteEntry }: ReportsProps) {
   const [selectedBunk, setSelectedBunk] = useState<string>('All');
   const [dateFilter, setDateFilter] = useState<'today' | 'yesterday' | 'custom'>('today');
   const [customDate, setCustomDate] = useState<string>('');
@@ -254,8 +260,32 @@ export function Reports({ entries }: { entries: ShiftEntry[] }) {
                 </span>
                 <span className="font-bold text-lg text-slate-900 dark:text-white print:text-[11px] print:text-black">{shift.employee} {shift.pump ? `(Pump ${shift.pump})` : ''}</span>
               </div>
-              <div className="text-sm font-semibold text-slate-500 print:text-[10px] print:text-black">
-                Shift Total: ₹{(shift.cash + shift.phonePe + shift.fleetCard).toLocaleString('en-IN')}
+              <div className="flex items-center gap-2">
+                <div className="text-sm font-semibold text-slate-500 print:text-[10px] print:text-black mr-2">
+                  Shift Total: ₹{(shift.cash + shift.phonePe + shift.fleetCard).toLocaleString('en-IN')}
+                </div>
+                {onEditEntry && (
+                  <button 
+                    onClick={() => onEditEntry(shift)}
+                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors print:hidden"
+                    title="Edit Entry"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                )}
+                {onDeleteEntry && shift._id && (
+                  <button 
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to delete this shift entry? This action cannot be undone.')) {
+                        onDeleteEntry(shift._id!);
+                      }
+                    }}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded transition-colors print:hidden"
+                    title="Delete Entry"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
             

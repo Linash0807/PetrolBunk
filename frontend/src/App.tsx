@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { NewEntryForm } from './components/NewEntryForm';
 import { Reports } from './components/Reports';
+import { EditEntryModal } from './components/EditEntryModal';
 import {
   Activity,
   ArrowRight,
@@ -169,6 +170,7 @@ function App() {
   const { token } = useAuth();
   const [currentPath, setCurrentPath] = useState(() => normalizePath(window.location.pathname));
   const [entries, setEntries] = useState<ShiftEntry[]>([]);
+  const [editingEntry, setEditingEntry] = useState<ShiftEntry | null>(null);
 
   const navigateTo = (path: string) => {
     const nextPath = normalizePath(path);
@@ -272,13 +274,69 @@ function App() {
     navigateTo('/reports');
   };
 
+  const handleUpdateEntry = async (entry: ShiftEntry) => {
+    if (!entry._id) {
+       alert("Cannot update: Entry ID is missing. This could be an old record without an ID.");
+       return;
+    }
+    const response = await fetchFromApi(`/shift-entries/${entry._id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(entry),
+    });
+
+    const result = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const backendMessage = result?.message || result?.error;
+      throw new Error(backendMessage ? `Failed to update entry: ${backendMessage}` : 'Failed to update entry');
+    }
+
+    if (!result?.success || !result?.data) {
+      throw new Error('Invalid response while updating entry');
+    }
+
+    setEntries((prev) => prev.map(e => e._id === entry._id ? result.data : e));
+    setEditingEntry(null);
+    alert('Entry updated successfully!');
+  };
+
+  const handleDeleteEntry = async (id: string) => {
+    try {
+      const response = await fetchFromApi(`/shift-entries/${id}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.message || result?.error || 'Failed to delete entry');
+      }
+
+      setEntries((prev) => prev.filter(e => e._id !== id));
+      alert('Entry deleted successfully!');
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : 'Error deleting entry');
+    }
+  };
+
   return (
     <ProtectedRoute onNavigate={navigateTo}>
       <DashboardLayout activePath={currentPath} onNavigate={navigateTo}>
         {currentPath === '/' && <DashboardOverview entries={entries} onNavigate={navigateTo} />}
         {currentPath === '/new-entry' && <NewEntryForm onAddEntry={handleAddEntry} entries={entries} />}
-        {currentPath === '/reports' && <Reports entries={entries} />}
+        {currentPath === '/reports' && <Reports entries={entries} onEditEntry={setEditingEntry} onDeleteEntry={handleDeleteEntry} />}
       </DashboardLayout>
+      
+      {editingEntry && (
+        <EditEntryModal 
+          entry={editingEntry}
+          onClose={() => setEditingEntry(null)}
+          onSave={handleUpdateEntry}
+        />
+      )}
     </ProtectedRoute>
   );
 }
