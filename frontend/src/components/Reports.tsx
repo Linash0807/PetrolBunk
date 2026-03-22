@@ -72,6 +72,9 @@ export function Reports({ entries }: { entries: ShiftEntry[] }) {
       body: [
         ['Net Liters', `${netTotalLiters.toFixed(2)} L`],
         ['Gross Liters', `${grossTotalLiters.toFixed(2)} L`],
+        ['Total Speed', `${totalSpeed.toFixed(2)} L`],
+        ['Total MS', `${totalMS.toFixed(2)} L`],
+        ['Total HSD', `${totalHSD.toFixed(2)} L`],
         ['Total Cash', `Rs ${totalCash.toLocaleString('en-IN')}`],
         ['PhonePe', `Rs ${totalPhonePe.toLocaleString('en-IN')}`],
         ['Fleet Card', `Rs ${totalFleetCard.toLocaleString('en-IN')}`],
