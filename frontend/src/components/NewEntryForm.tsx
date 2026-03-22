@@ -12,7 +12,7 @@ interface NewEntryFormProps {
   entries: ShiftEntry[];
 }
 
-const PUMPS = ['A', 'B', 'C', 'D', 'E', 'F'];
+const PUMPS = ['1', '2', '3', '4', '5', '6'];
 const METER_HISTORY_KEY = 'pbm-nozzle-last-cmr-v1';
 const SHIFT_SEQUENCE: Record<string, number> = { A: 1, B: 2, C: 3, 'Day End': 4 };
 
