@@ -57,7 +57,7 @@ const shiftEntrySchema = new mongoose.Schema(
     pump: {
       type: String,
       required: true,
-      enum: ['A', 'B', 'C', 'D', 'E', 'F'],
+      enum: ['1', '2', '3', '4', '5', '6'],
     },
     employee: {
       type: String,
