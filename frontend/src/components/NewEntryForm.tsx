@@ -117,40 +117,10 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
   }, [entries, pump, shift, date]);
 
   const handleNozzleChange = (index: number, field: keyof NozzleData, value: string) => {
-    const nozzleId = nozzles[index]?.id;
-    if (field === 'omr' && nozzleId && expectedOmrByNozzle[nozzleId] !== undefined) {
-      const expectedNum = parseFloat(expectedOmrByNozzle[nozzleId]);
-      if (!Number.isNaN(expectedNum) && expectedNum > 0) {
-        return;
-      }
-    }
-
     const updated = [...nozzles];
     updated[index] = { ...updated[index], [field]: value };
     setNozzles(updated);
   };
-
-  const hasLockedOmrMismatch = nozzles.some((nozzle) => {
-    const expected = expectedOmrByNozzle[nozzle.id];
-    if (expected === undefined) return false;
-
-    const current = parseFloat(nozzle.omr);
-    const expectedNum = parseFloat(expected);
-    if (!Number.isNaN(expectedNum) && expectedNum === 0) return false;
-    if (Number.isNaN(current) || Number.isNaN(expectedNum)) return true;
-
-    return Math.abs(current - expectedNum) > 0.0001;
-  });
-
-  const hasMissingExpectedOmr = nozzles.some((nozzle) => {
-    const expected = expectedOmrByNozzle[nozzle.id];
-    if (expected === undefined) return false;
-
-    const expectedNum = parseFloat(expected);
-    if (!Number.isNaN(expectedNum) && expectedNum === 0) return false;
-
-    return nozzle.omr === '';
-  });
 
   // ----------------------------------------------------
   // GLOBAL CALCULATIONS (ONLY IN PARENT AS REQUESTED)
@@ -160,7 +130,6 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
   let totalWrittenNet = 0;
   let hasNegativeSales = false;
   const mismatchedNozzleNames: string[] = [];
-
   let totalSpeed = 0;
   let totalMS = 0;
   let totalHSD = 0;
@@ -224,8 +193,8 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
   const isCashMatch = hasCashInput && Math.abs(actualCashNum - calculatedCash) < 0.01;
   const isCashMismatch = hasCashInput && !isCashMatch;
 
-  const isFullyVerified = hasAnyInputs && netMatch && isCashMatch && !hasNegativeSales && mismatchedNozzleNames.length === 0 && !hasLockedOmrMismatch && !hasMissingExpectedOmr;
-  const hasErrors = hasNegativeSales || mismatchedNozzleNames.length > 0 || isCashMismatch || (!netMatch && hasAnyInputs) || hasLockedOmrMismatch || hasMissingExpectedOmr;
+  const isFullyVerified = hasAnyInputs && netMatch && isCashMatch && !hasNegativeSales && mismatchedNozzleNames.length === 0;
+  const hasErrors = hasNegativeSales || mismatchedNozzleNames.length > 0 || isCashMismatch || (!netMatch && hasAnyInputs);
   const isEmployeeMissing = employee.trim() === '';
 
   return (
@@ -401,8 +370,6 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
         
         {nozzles.map((nozzle, index) => {
           const props = nozzleProps[index];
-          const expectedOmrNum = parseFloat(expectedOmrByNozzle[nozzle.id] ?? '');
-          const isOmrLocked = expectedOmrByNozzle[nozzle.id] !== undefined && !Number.isNaN(expectedOmrNum) && expectedOmrNum > 0;
           return (
             <NozzleCard 
               key={nozzle.id} 
@@ -413,19 +380,13 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
               isMismatch={props.isMismatch}
               hasInputs={props.hasInputs}
               isNegativeSales={props.isNegativeSales}
-              isOmrLocked={isOmrLocked}
-              omrHelpText={isOmrLocked ? omrSourceLabel : ''}
+              isOmrLocked={false}
+              omrHelpText={omrSourceLabel}
               onChange={(field, value) => handleNozzleChange(index, field, value)} 
             />
           );
         })}
       </div>
-
-      {(hasLockedOmrMismatch || hasMissingExpectedOmr) && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-300">
-          OMR mismatch detected. Locked OMR values must match the previous closing readings for this pump.
-        </div>
-      )}
 
       {Object.keys(expectedOmrByNozzle).length === 0 && omrSourceLabel && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">

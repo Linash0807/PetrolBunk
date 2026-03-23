@@ -225,8 +225,14 @@ function App() {
     };
 
     window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
 
+  useEffect(() => {
     const loadEntries = async () => {
+      if (!token) return;
       try {
         const response = await fetchFromApi('/shift-entries');
         if (!response.ok) {
@@ -243,11 +249,8 @@ function App() {
     };
 
     loadEntries();
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const handleAddEntry = async (entry: ShiftEntry) => {
     const response = await fetchFromApi('/shift-entries', {
