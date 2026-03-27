@@ -19,7 +19,7 @@ const SHIFT_SEQUENCE: Record<string, number> = { A: 1, B: 2, C: 3, 'Day End': 4 
 export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [shift, setShift] = useState('A');
-  const [pump, setPump] = useState('A');
+  const [pump, setPump] = useState('1');
   const [employee, setEmployee] = useState('');
 
   const [prices, setPrices] = useState({
