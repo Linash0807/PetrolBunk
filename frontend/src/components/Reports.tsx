@@ -2,20 +2,22 @@ import { useState } from 'react';
 import { MapPin, Printer, Fuel, CreditCard, Banknote, History, Zap, Pencil, Trash2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { ShiftEntry } from '../types';
+import type { ShiftEntry, DailyEntry } from '../types';
 
 const BUNKS = ['All', 'Bunk 1', 'Bunk 2', 'Bunk 3', 'Bunk 4', 'Bunk 5', 'Bunk 6', 'Bunk 7'];
 
 interface ReportsProps {
   entries: ShiftEntry[];
+  dailyEntries?: DailyEntry[];
   onEditEntry?: (entry: ShiftEntry) => void;
   onDeleteEntry?: (id: string) => void;
 }
 
-export function Reports({ entries, onEditEntry, onDeleteEntry }: ReportsProps) {
+export function Reports({ entries, dailyEntries = [], onEditEntry, onDeleteEntry }: ReportsProps) {
   const [selectedBunk, setSelectedBunk] = useState<string>('All');
   const [dateFilter, setDateFilter] = useState<'today' | 'yesterday' | 'custom'>('today');
   const [customDate, setCustomDate] = useState<string>('');
+  const [show24Hrs, setShow24Hrs] = useState(false);
   
   const todayDate = new Date();
   const localToday = new Date(todayDate.getTime() - todayDate.getTimezoneOffset() * 60000)
@@ -30,6 +32,8 @@ export function Reports({ entries, onEditEntry, onDeleteEntry }: ReportsProps) {
   let activeDate = localToday;
   if (dateFilter === 'yesterday') activeDate = localYesterday;
   if (dateFilter === 'custom') activeDate = customDate;
+
+  const activeDailyEntry = dailyEntries.find(e => e.date === activeDate);
 
   const bunkEntries = selectedBunk === 'All' ? entries : entries.filter(e => e.bunk === selectedBunk);
 
@@ -52,7 +56,8 @@ export function Reports({ entries, onEditEntry, onDeleteEntry }: ReportsProps) {
   const totalCash = currentData.reduce((acc, curr) => acc + curr.cash, 0);
   const totalPhonePe = currentData.reduce((acc, curr) => acc + curr.phonePe, 0);
   const totalFleetCard = currentData.reduce((acc, curr) => acc + curr.fleetCard, 0);
-  const totalCollection = totalCash + totalPhonePe + totalFleetCard;
+  const totalLubricant = currentData.reduce((acc, curr) => acc + (curr.lubricant || 0), 0);
+  const totalCollection = totalCash + totalPhonePe + totalFleetCard + totalLubricant;
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -84,6 +89,7 @@ export function Reports({ entries, onEditEntry, onDeleteEntry }: ReportsProps) {
         ['Total Cash', `Rs ${totalCash.toLocaleString('en-IN')}`],
         ['PhonePe', `Rs ${totalPhonePe.toLocaleString('en-IN')}`],
         ['Fleet Card', `Rs ${totalFleetCard.toLocaleString('en-IN')}`],
+        ['Lubricant', `Rs ${totalLubricant.toLocaleString('en-IN')}`],
         ['Total Collection', `Rs ${totalCollection.toLocaleString('en-IN')}`],
       ],
     });
@@ -95,9 +101,9 @@ export function Reports({ entries, onEditEntry, onDeleteEntry }: ReportsProps) {
       theme: 'grid',
       styles: { fontSize: 8, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.5, cellPadding: 3 },
       headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold' },
-      head: [['Employee', 'Shift', 'Pump', 'Speed (L)', 'MS (L)', 'HSD (L)', 'Cash', 'PhonePe', 'Fleet', 'Shift Total']],
+      head: [['Employee', 'Shift', 'Pump', 'Speed (L)', 'MS (L)', 'HSD (L)', 'Cash', 'PhonePe', 'Fleet', 'Lubricant', 'Shift Total']],
       body: currentData.map((shift) => {
-        const shiftTotal = shift.cash + shift.phonePe + shift.fleetCard;
+        const shiftTotal = shift.cash + shift.phonePe + shift.fleetCard + (shift.lubricant || 0);
         return [
           shift.employee || 'Unknown',
           `Shift ${shift.shift}`,
@@ -108,6 +114,7 @@ export function Reports({ entries, onEditEntry, onDeleteEntry }: ReportsProps) {
           `Rs ${shift.cash.toLocaleString('en-IN')}`,
           `Rs ${shift.phonePe.toLocaleString('en-IN')}`,
           `Rs ${shift.fleetCard.toLocaleString('en-IN')}`,
+          `Rs ${(shift.lubricant || 0).toLocaleString('en-IN')}`,
           `Rs ${shiftTotal.toLocaleString('en-IN')}`,
         ];
       }),
@@ -242,15 +249,53 @@ export function Reports({ entries, onEditEntry, onDeleteEntry }: ReportsProps) {
       <div className="flex items-center justify-between px-2 pt-4 print:pt-1 print:px-0">
         <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 print:text-sm print:text-black">
           <History className="w-5 h-5 text-blue-500 print:hidden" />
-          Shift-wise Breakdown
+          {show24Hrs ? '24 Hrs Bunk Report Details' : 'Shift-wise Breakdown'}
         </h3>
-        <span className="text-sm font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full print:hidden">
-          Total Collection: ₹{totalCollection.toLocaleString('en-IN')}
-        </span>
+        <div className="flex items-center gap-3 print:hidden">
+          {activeDailyEntry && (
+            <button
+              onClick={() => setShow24Hrs(!show24Hrs)}
+              className="text-sm font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 px-3 py-1.5 rounded-lg transition-colors hover:bg-indigo-200 dark:hover:bg-indigo-800/50"
+            >
+              {show24Hrs ? 'Show Shift Entries' : 'View 24 Hrs Report'}
+            </button>
+          )}
+          {!show24Hrs && (
+            <span className="text-sm font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
+              Total Collection: ₹{totalCollection.toLocaleString('en-IN')}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Shift Employee Data Cards */}
-      <div className="space-y-4 print:space-y-2 print:mt-1">
+      {show24Hrs && activeDailyEntry ? (
+        <div className="space-y-4 print:space-y-2 print:mt-1">
+          {activeDailyEntry.nozzleReadings && activeDailyEntry.nozzleReadings.length > 0 ? (
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden print:border-black print:shadow-none print:rounded-none">
+              <div className="bg-slate-50 dark:bg-slate-800/50 px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between print:bg-white print:border-black print:py-1.5 print:px-2">
+                <span className="font-bold text-lg text-slate-900 dark:text-white print:text-[11px] print:text-black">All Nozzles Report</span>
+              </div>
+              <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 print:grid-cols-3 print:p-2 print:gap-2">
+                {activeDailyEntry.nozzleReadings.map((nozzle, idx) => {
+                  if (nozzle.cmr === 0 && nozzle.omr === 0) return null;
+                  return (
+                    <div key={idx} className="space-y-2">
+                      <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 pb-1 print:border-black print:text-black">{nozzle.nozzleName}</h4>
+                      <div className="flex justify-between text-sm"><span className="text-slate-500">OMR</span><span className="font-medium">{nozzle.omr}</span></div>
+                      <div className="flex justify-between text-sm"><span className="text-slate-500">CMR</span><span className="font-medium">{nozzle.cmr}</span></div>
+                      <div className="flex justify-between text-sm"><span className="text-slate-500">Testing</span><span className="font-medium">{nozzle.testing}</span></div>
+                      <div className="flex justify-between text-sm"><span className="text-slate-500">Net Sales</span><span className="font-bold text-blue-600">{nozzle.writtenNet} L</span></div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center p-4 text-slate-500">No nozzle data available for this report.</div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4 print:space-y-2 print:mt-1">
         {currentData.map((shift, idx) => (
           <div key={idx} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden print:break-inside-avoid print:border-black print:shadow-none print:rounded-none">
             <div className="bg-slate-50 dark:bg-slate-800/50 px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between print:bg-white print:border-black print:py-1.5 print:px-2">
@@ -262,7 +307,7 @@ export function Reports({ entries, onEditEntry, onDeleteEntry }: ReportsProps) {
               </div>
               <div className="flex items-center gap-2">
                 <div className="text-sm font-semibold text-slate-500 print:text-[10px] print:text-black mr-2">
-                  Shift Total: ₹{(shift.cash + shift.phonePe + shift.fleetCard).toLocaleString('en-IN')}
+                  Shift Total: ₹{(shift.cash + shift.phonePe + shift.fleetCard + (shift.lubricant || 0)).toLocaleString('en-IN')}
                 </div>
                 {onEditEntry && (
                   <button 
@@ -330,16 +375,22 @@ export function Reports({ entries, onEditEntry, onDeleteEntry }: ReportsProps) {
                   <span className="font-medium text-slate-600 dark:text-slate-300 print:text-black">Fleet Card</span>
                   <span className="font-semibold text-slate-900 dark:text-white print:text-black">₹{shift.fleetCard.toLocaleString('en-IN')}</span>
                 </div>
+                {(shift.lubricant || 0) > 0 && (
+                  <div className="flex justify-between items-center text-sm print:text-[10px]">
+                    <span className="font-medium text-slate-600 dark:text-slate-300 print:text-black">Lubricant</span>
+                    <span className="font-semibold text-slate-900 dark:text-white print:text-black">₹{shift.lubricant.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-100 dark:border-slate-800 print:border-black print:pt-1 print:text-[10px]">
                   <span className="font-bold text-slate-800 dark:text-slate-200 print:text-black">Total</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400 print:text-black">₹{(shift.cash + shift.phonePe + shift.fleetCard).toLocaleString('en-IN')}</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 print:text-black">₹{(shift.cash + shift.phonePe + shift.fleetCard + (shift.lubricant || 0)).toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>
           </div>
         ))}
       </div>
-      
+      )}
     </div>
   );
 }

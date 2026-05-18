@@ -3,6 +3,7 @@ import { useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { NewEntryForm } from './components/NewEntryForm';
+import { TwentyFourHourForm } from './components/TwentyFourHourForm';
 import { Reports } from './components/Reports';
 import { EditEntryModal } from './components/EditEntryModal';
 import {
@@ -56,7 +57,8 @@ function DashboardOverview({
   const totalCash = todayEntries.reduce((acc, curr) => acc + curr.cash, 0);
   const totalPhonePe = todayEntries.reduce((acc, curr) => acc + curr.phonePe, 0);
   const totalFleet = todayEntries.reduce((acc, curr) => acc + curr.fleetCard, 0);
-  const totalCollection = totalCash + totalPhonePe + totalFleet;
+  const totalLubricant = todayEntries.reduce((acc, curr) => acc + (curr.lubricant || 0), 0);
+  const totalCollection = totalCash + totalPhonePe + totalFleet + totalLubricant;
 
   const totalShifts = todayEntries.length;
   const avgLitersPerShift = totalShifts > 0 ? totalLiters / totalShifts : 0;
@@ -134,7 +136,7 @@ function DashboardOverview({
 
             {latestEntries.map((entry, index) => {
               const shiftLiters = entry.speed + entry.ms + entry.hsd;
-              const shiftTotal = entry.cash + entry.phonePe + entry.fleetCard;
+              const shiftTotal = entry.cash + entry.phonePe + entry.fleetCard + (entry.lubricant || 0);
 
               return (
                 <div
@@ -158,9 +160,9 @@ function DashboardOverview({
   );
 }
 
-import type { ShiftEntry } from './types';
+import type { ShiftEntry, DailyEntry } from './types';
 
-const validPaths = ['/', '/new-entry', '/reports'] as const;
+const validPaths = ['/', '/new-entry', '/reports', '/24hrs'] as const;
 
 function normalizePath(path: string): string {
   return validPaths.includes(path as (typeof validPaths)[number]) ? path : '/';
@@ -170,6 +172,7 @@ function App() {
   const { token } = useAuth();
   const [currentPath, setCurrentPath] = useState(() => normalizePath(window.location.pathname));
   const [entries, setEntries] = useState<ShiftEntry[]>([]);
+  const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
   const [editingEntry, setEditingEntry] = useState<ShiftEntry | null>(null);
 
   const navigateTo = (path: string) => {
@@ -248,7 +251,22 @@ function App() {
       }
     };
 
+    const loadDailyEntries = async () => {
+      if (!token) return;
+      try {
+        const response = await fetchFromApi('/daily-entries');
+        if (!response.ok) throw new Error('Failed to fetch daily entries');
+        const result = await response.json();
+        if (result?.success && Array.isArray(result.data)) {
+          setDailyEntries(result.data);
+        }
+      } catch (error) {
+        console.error('Error loading daily entries:', error);
+      }
+    };
+
     loadEntries();
+    loadDailyEntries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -274,6 +292,29 @@ function App() {
 
     setEntries((prev) => [result.data, ...prev]);
     alert('Entry saved to MongoDB successfully!');
+    navigateTo('/reports');
+  };
+
+  const handleAddDailyEntry = async (entry: DailyEntry) => {
+    const response = await fetchFromApi('/daily-entries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry),
+    });
+
+    const result = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const backendMessage = result?.message || result?.error;
+      throw new Error(backendMessage ? `Failed to save entry: ${backendMessage}` : 'Failed to save entry');
+    }
+
+    if (!result?.success || !result?.data) {
+      throw new Error('Invalid response while saving entry');
+    }
+
+    setDailyEntries((prev) => [result.data, ...prev]);
+    alert('24 Hrs Report saved successfully!');
     navigateTo('/reports');
   };
 
@@ -330,7 +371,8 @@ function App() {
       <DashboardLayout activePath={currentPath} onNavigate={navigateTo}>
         {currentPath === '/' && <DashboardOverview entries={entries} onNavigate={navigateTo} />}
         {currentPath === '/new-entry' && <NewEntryForm onAddEntry={handleAddEntry} entries={entries} />}
-        {currentPath === '/reports' && <Reports entries={entries} onEditEntry={setEditingEntry} onDeleteEntry={handleDeleteEntry} />}
+        {currentPath === '/24hrs' && <TwentyFourHourForm onAddEntry={handleAddDailyEntry} />}
+        {currentPath === '/reports' && <Reports entries={entries} dailyEntries={dailyEntries} onEditEntry={setEditingEntry} onDeleteEntry={handleDeleteEntry} />}
       </DashboardLayout>
       
       {editingEntry && (

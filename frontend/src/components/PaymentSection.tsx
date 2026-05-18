@@ -8,6 +8,8 @@ interface PaymentSectionProps {
   prices: { Speed: number; MS: number; HSD: number };
   phonePe: string;
   setPhonePe: (val: string) => void;
+  lubricant: string;
+  setLubricant: (val: string) => void;
   expense: string;
   setexpense: (val: string) => void;
   fleetCard: string;
@@ -21,7 +23,7 @@ interface PaymentSectionProps {
 }
 
 export function PaymentSection({ 
-  totalNet, totalSpeed, totalMS, totalHSD, prices, phonePe, setPhonePe, expense, setexpense, fleetCard, setFleetCard, actualCash, setActualCash, 
+  totalNet, totalSpeed, totalMS, totalHSD, prices, phonePe, setPhonePe, lubricant, setLubricant, expense, setexpense, fleetCard, setFleetCard, actualCash, setActualCash, 
   calculatedCash, totalAmount, isCashMatch, isCashMismatch
 }: PaymentSectionProps) {
 
@@ -122,6 +124,22 @@ export function PaymentSection({
                 value={expense}
                 onChange={e => setexpense(e.target.value)}
                 className="w-full h-14 pl-8 pr-3 text-xl font-medium rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+              />
+            </div>
+          </div>
+                    <div className="space-y-1">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <CreditCard className="w-4 h-4 text-emerald-500" />
+              lubricant
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₹</span>
+              <input 
+                type="number"
+                placeholder="0.00"
+                value={lubricant}
+                onChange={e => setLubricant(e.target.value)}
+                className="w-full h-14 pl-8 pr-3 text-xl font-medium rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
               />
             </div>
           </div>

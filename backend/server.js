@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import pumpEntryRoutes from './routes/pumpEntries.js';
 import paymentRoutes from './routes/payments.js';
 import shiftEntryRoutes from './routes/shiftEntries.js';
+import dailyEntryRoutes from './routes/dailyEntries.js';
 import authRoutes from './routes/auth.js';
 import authMiddleware from './middleware/authMiddleware.js';
 
@@ -21,9 +22,7 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected successfully'))
-  .catch(err => console.error('MongoDB connection error:', err));
+
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -32,6 +31,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/pump-entries', authMiddleware, pumpEntryRoutes);
 app.use('/api/payments', authMiddleware, paymentRoutes);
 app.use('/api/shift-entries', authMiddleware, shiftEntryRoutes);
+app.use('/api/daily-entries', authMiddleware, dailyEntryRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -69,3 +69,6 @@ const startServer = (port) => {
 };
 
 startServer(PORT);
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('MongoDB connected successfully'))
+  .catch(err => console.error('MongoDB connection error:', err));

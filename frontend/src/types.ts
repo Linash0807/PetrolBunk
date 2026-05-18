@@ -18,8 +18,23 @@ export interface ShiftEntry {
   ms: number;
   hsd: number;
   cash: number;
+  lubricant:number;
   phonePe: number;
   fleetCard: number;
   expense: number;
   nozzleReadings?: NozzleReading[];
+}
+
+export interface DailyEntry {
+  _id?: string;
+  date: string;
+  speed: number;
+  ms: number;
+  hsd: number;
+  cash: number;
+  lubricant?: number;
+  phonePe: number;
+  fleetCard: number;
+  expense: number;
+  nozzleReadings: NozzleReading[];
 }

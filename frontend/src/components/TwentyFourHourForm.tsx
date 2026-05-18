@@ -1,26 +1,31 @@
-import { useEffect, useState } from 'react';
-import { Calendar, Clock, User, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { Calendar, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { NozzleCard, type NozzleData } from './NozzleCard';
 import { PaymentSection } from './PaymentSection';
 import { VerificationPanel } from './VerificationPanel';
-import type { ShiftEntry } from '../types';
+import type { DailyEntry } from '../types';
 
-const NOZZLES = ['Speed1', 'Speed2', 'MS1', 'MS2', 'HSD1', 'HSD2'];
+const NOZZLE_NAMES = [
+  'MS 1', 'MS 2', 'MS 3', 'MS 4', 'MS 5', 'MS 6',
+  'HSD 1', 'HSD 2', 'HSD 3', 'HSD 4', 'HSD 5', 'HSD 6',
+  'Speed 1', 'Speed 2'
+];
 
-interface NewEntryFormProps {
-  onAddEntry: (entry: ShiftEntry) => Promise<void>;
-  entries: ShiftEntry[];
+const INITIAL_NOZZLES = NOZZLE_NAMES.map(name => ({
+  id: name,
+  name: name,
+  omr: '',
+  cmr: '',
+  testing: '',
+  writtenNet: ''
+}));
+
+interface TwentyFourHourFormProps {
+  onAddEntry: (entry: DailyEntry) => Promise<void>;
 }
 
-const PUMPS = ['1', '2', '3', '4', '5', '6'];
-const METER_HISTORY_KEY = 'pbm-nozzle-last-cmr-v1';
-const SHIFT_SEQUENCE: Record<string, number> = { A: 1, B: 2, C: 3, 'Day End': 4 };
-
-export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
+export function TwentyFourHourForm({ onAddEntry }: TwentyFourHourFormProps) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [shift, setShift] = useState('A');
-  const [pump, setPump] = useState('1');
-  const [employee, setEmployee] = useState('');
 
   const [prices, setPrices] = useState({
     Speed: '121.06',
@@ -28,16 +33,7 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
     HSD: '99.33'
   });
 
-  const [nozzles, setNozzles] = useState<NozzleData[]>(
-    NOZZLES.map(name => ({
-      id: name,
-      name,
-      omr: '',
-      cmr: '',
-      testing: '',
-      writtenNet: ''
-    }))
-  );
+  const [nozzles, setNozzles] = useState<NozzleData[]>(INITIAL_NOZZLES);
 
   const [phonePe, setPhonePe] = useState('');
   const [lubricant, setLubricant] = useState('');
@@ -45,77 +41,6 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
   const [fleetCard, setFleetCard] = useState('');
   const [actualCash, setActualCash] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [expectedOmrByNozzle, setExpectedOmrByNozzle] = useState<Record<string, string>>({});
-  const [omrSourceLabel, setOmrSourceLabel] = useState('');
-
-  useEffect(() => {
-    const latestReadingByNozzle: Record<string, string> = {};
-    let resolvedSourceLabel = '';
-
-    const entriesByPump = entries.filter((entry) => {
-      if (entry.pump) return entry.pump === pump;
-      return entry.shift === pump;
-    });
-
-    const currentShiftRank = SHIFT_SEQUENCE[shift] ?? 0;
-    const nearestPreviousEntry = entriesByPump
-      .filter((entry) => {
-        if (!entry.date) return false;
-        if (entry.date < date) return true;
-        if (entry.date > date) return false;
-
-        const entryShiftRank = SHIFT_SEQUENCE[entry.shift] ?? 0;
-        return entryShiftRank < currentShiftRank;
-      })
-      .sort((a, b) => {
-        if (a.date !== b.date) return b.date.localeCompare(a.date);
-
-        const shiftDiff = (SHIFT_SEQUENCE[b.shift] ?? 0) - (SHIFT_SEQUENCE[a.shift] ?? 0);
-        if (shiftDiff !== 0) return shiftDiff;
-
-        const aCreatedAt = (a as ShiftEntry & { createdAt?: string }).createdAt || '';
-        const bCreatedAt = (b as ShiftEntry & { createdAt?: string }).createdAt || '';
-        return bCreatedAt.localeCompare(aCreatedAt);
-      })[0];
-
-    if (nearestPreviousEntry) {
-      resolvedSourceLabel = `Auto from ${nearestPreviousEntry.date} Shift ${nearestPreviousEntry.shift} (Pump ${pump})`;
-      for (const reading of nearestPreviousEntry.nozzleReadings || []) {
-        if (!(reading.nozzleId in latestReadingByNozzle)) {
-          latestReadingByNozzle[reading.nozzleId] = String(reading.cmr);
-        }
-      }
-    }
-
-    if (Object.keys(latestReadingByNozzle).length === 0) {
-      for (const entry of entriesByPump) {
-        for (const reading of entry.nozzleReadings || []) {
-          if (!(reading.nozzleId in latestReadingByNozzle)) {
-            latestReadingByNozzle[reading.nozzleId] = String(reading.cmr);
-          }
-        }
-      }
-      if (Object.keys(latestReadingByNozzle).length > 0) {
-        resolvedSourceLabel = `Auto from latest saved record (Pump ${pump})`;
-      }
-    }
-
-    if (Object.keys(latestReadingByNozzle).length === 0) {
-      setExpectedOmrByNozzle({});
-      setOmrSourceLabel(`No previous server entry found for Pump ${pump}. OMR set to 0.`);
-      setNozzles((prev) => prev.map((nozzle) => ({ ...nozzle, omr: '0' })));
-      return;
-    }
-
-    setExpectedOmrByNozzle(latestReadingByNozzle);
-    setOmrSourceLabel(resolvedSourceLabel);
-    setNozzles((prev) =>
-      prev.map((nozzle) => ({
-        ...nozzle,
-        omr: latestReadingByNozzle[nozzle.id] ?? '',
-      }))
-    );
-  }, [entries, pump, shift, date]);
 
   const handleNozzleChange = (index: number, field: keyof NozzleData, value: string) => {
     const updated = [...nozzles];
@@ -123,10 +48,6 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
     setNozzles(updated);
   };
 
-  // ----------------------------------------------------
-  // GLOBAL CALCULATIONS (ONLY IN PARENT AS REQUESTED)
-  // ----------------------------------------------------
-  
   let totalNet = 0;
   let totalWrittenNet = 0;
   let hasNegativeSales = false;
@@ -145,7 +66,6 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
     const isNegativeSales = nozzle.cmr !== '' && sales < 0;
     if (isNegativeSales) hasNegativeSales = true;
     
-    // Net is Sales - Testing, but min 0 unless sales is negative
     const netSales = isNegativeSales ? sales : Math.max(0, sales - testingNum);
     
     const hasInputs = nozzle.cmr !== '' && nozzle.writtenNet !== '';
@@ -156,12 +76,11 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
       mismatchedNozzleNames.push(nozzle.name);
     }
 
-    // Only add to totals if inputs are valid and non-negative
     if (!isNegativeSales) {
       totalNet += netSales;
-      if (nozzle.name.startsWith('Speed')) totalSpeed += netSales;
-      else if (nozzle.name.startsWith('MS')) totalMS += netSales;
-      else if (nozzle.name.startsWith('HSD')) totalHSD += netSales;
+      if (nozzle.name.includes('Speed')) totalSpeed += netSales;
+      else if (nozzle.name.includes('MS')) totalMS += netSales;
+      else if (nozzle.name.includes('HSD')) totalHSD += netSales;
     }
     totalWrittenNet += writtenNetNum;
 
@@ -174,6 +93,7 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
       isNegativeSales
     };
   });
+
   const lubricantNum = parseFloat(lubricant) || 0;
   const phonePeNum = parseFloat(phonePe) || 0;
   const fleetCardNum = parseFloat(fleetCard) || 0;
@@ -188,7 +108,6 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
   const totalAmount = Math.round(((totalSpeed * speedPriceNum) + (totalMS * msPriceNum) + (totalHSD * hsdPriceNum)) * 100) / 100;
   const calculatedCash = Math.round(Math.max(0, totalAmount - phonePeNum - fleetCardNum - expenseNum - lubricantNum) * 100) / 100;
 
-  // Verification Logic
   const hasAnyInputs = nozzles.some(n => n.cmr !== '' || n.writtenNet !== '');
   const netMatch = Math.abs(totalNet - totalWrittenNet) < 0.01 && mismatchedNozzleNames.length === 0 && !hasNegativeSales;
   const isCashMatch = hasCashInput && Math.abs(actualCashNum - calculatedCash) < 0.01;
@@ -196,10 +115,9 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
 
   const isFullyVerified = hasAnyInputs && netMatch && isCashMatch && !hasNegativeSales && mismatchedNozzleNames.length === 0;
   const hasErrors = hasNegativeSales || mismatchedNozzleNames.length > 0 || isCashMismatch || (!netMatch && hasAnyInputs);
-  const isEmployeeMissing = employee.trim() === '';
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-28 animate-in fade-in duration-500 relative">
+    <div className="max-w-4xl mx-auto space-y-6 pb-28 animate-in fade-in duration-500 relative">
       
       {/* Top Banner Status */}
       <div className={`sticky top-0 z-40 rounded-b-2xl shadow-md border-b-4 md:rounded-t-2xl p-4 transition-all duration-300 ${
@@ -215,7 +133,7 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
           </div>
           <div className="flex-1">
             <h2 className={`text-xl font-bold ${isFullyVerified ? 'text-white' : hasErrors ? 'text-rose-800 dark:text-rose-200' : 'text-slate-900 dark:text-white'}`}>
-              {isFullyVerified ? 'All values verified successfully' : hasErrors ? 'Mismatch detected' : 'Shift Verification Pending'}
+              {isFullyVerified ? 'All values verified successfully' : hasErrors ? 'Mismatch detected' : '24 Hrs Verification Pending'}
             </h2>
             
             <div className={`mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm ${isFullyVerified ? 'text-emerald-50' : hasErrors ? 'text-rose-700 dark:text-rose-300' : 'text-slate-600 dark:text-slate-400'}`}>
@@ -247,153 +165,96 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
       <div className="flex items-center justify-between px-2 pt-2 gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            New Entry
+            24 Hrs Bunk Report
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Fill meter readings for a shift and assigned pump.
+            Fill meter readings for all pumps at the end of the day.
           </p>
         </div>
       </div>
 
-      {/* Top Section */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 space-y-4">
+      {/* Date Section */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
           Entry Details
         </h3>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-slate-400" /> Date
-            </label>
-            <input 
-              type="date" 
-              value={date}
-              onChange={e => setDate(e.target.value)}
-              className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-            />
-          </div>
-
-          <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-slate-400" /> Shift
-            </label>
-            <select 
-              value={shift}
-              onChange={e => setShift(e.target.value)}
-              className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-            >
-              <option value="A">Shift A</option>
-              <option value="B">Shift B</option>
-              <option value="C">Shift C</option>
-            </select>
-          </div>
-
-          <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-slate-400" /> Pump
-            </label>
-            <select 
-              value={pump}
-              onChange={e => setPump(e.target.value)}
-              className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-            >
-              {PUMPS.map((pump) => (
-                <option key={pump} value={pump}>Pump {pump}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1.5 animate-in fade-in zoom-in-95 duration-200">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-              <User className="w-4 h-4 text-slate-400" /> Employee Name
-            </label>
-            <input 
-              type="text" 
-              placeholder="Enter name"
-              value={employee}
-              onChange={e => setEmployee(e.target.value)}
-              className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
-            />
-          </div>
+        <div className="max-w-md space-y-1.5">
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-slate-400" /> Date
+          </label>
+          <input 
+            type="date" 
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+          />
         </div>
       </div>
 
       {/* Fuel Prices Section */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 space-y-4">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Fuel Prices (₹/L)</h3>
-        
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Speed</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₹</span>
-              <input 
-                type="number" 
-                value={prices.Speed}
-                onChange={e => setPrices({...prices, Speed: e.target.value})}
-                className="w-full h-12 pl-8 pr-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              />
+              <input type="number" value={prices.Speed} onChange={e => setPrices({...prices, Speed: e.target.value})} className="w-full h-12 pl-8 pr-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" />
             </div>
           </div>
-
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">MS</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₹</span>
-              <input 
-                type="number" 
-                value={prices.MS}
-                onChange={e => setPrices({...prices, MS: e.target.value})}
-                className="w-full h-12 pl-8 pr-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              />
+              <input type="number" value={prices.MS} onChange={e => setPrices({...prices, MS: e.target.value})} className="w-full h-12 pl-8 pr-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" />
             </div>
           </div>
-
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">HSD</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₹</span>
-              <input 
-                type="number" 
-                value={prices.HSD}
-                onChange={e => setPrices({...prices, HSD: e.target.value})}
-                className="w-full h-12 pl-8 pr-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-              />
+              <input type="number" value={prices.HSD} onChange={e => setPrices({...prices, HSD: e.target.value})} className="w-full h-12 pl-8 pr-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Nozzle Cards list */}
-      <div className="space-y-4">
+      {/* Pumps Section */}
+      <div className="space-y-6">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider pt-2 pl-1">Meter Readings</h3>
         
-        {nozzles.map((nozzle, index) => {
-          const props = nozzleProps[index];
-          return (
-            <NozzleCard 
-              key={nozzle.id} 
-              nozzle={nozzle} 
-              sales={props.sales}
-              netSales={props.netSales}
-              isMatch={props.isMatch}
-              isMismatch={props.isMismatch}
-              hasInputs={props.hasInputs}
-              isNegativeSales={props.isNegativeSales}
-              isOmrLocked={false}
-              omrHelpText={omrSourceLabel}
-              onChange={(field, value) => handleNozzleChange(index, field, value)} 
-            />
-          );
-        })}
-      </div>
-
-      {Object.keys(expectedOmrByNozzle).length === 0 && omrSourceLabel && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
-          {omrSourceLabel}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {['MS', 'HSD', 'Speed'].map(fuel => {
+            const fuelNozzles = nozzles.map((n, i) => ({ n, i })).filter(({ n }) => n.name.startsWith(fuel));
+            if (fuelNozzles.length === 0) return null;
+            return (
+              <div key={fuel} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+                <div className="bg-slate-100 dark:bg-slate-800 px-4 py-3 border-b border-slate-200 dark:border-slate-700 font-bold text-slate-800 dark:text-slate-200">
+                  {fuel} Pumps
+                </div>
+                <div className="p-4 space-y-4">
+                  {fuelNozzles.map(({ n: nozzle, i: index }) => {
+                    const props = nozzleProps[index];
+                    return (
+                      <NozzleCard 
+                        key={nozzle.id} 
+                        nozzle={nozzle} 
+                        sales={props.sales}
+                        netSales={props.netSales}
+                        isMatch={props.isMatch}
+                        isMismatch={props.isMismatch}
+                        hasInputs={props.hasInputs}
+                        isNegativeSales={props.isNegativeSales}
+                        onChange={(field, value) => handleNozzleChange(index, field, value)} 
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
-      )}
+      </div>
 
       {/* Fuel Sales Summary Card */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
@@ -446,23 +307,23 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
 
       {/* Sticky Bottom Bar */}
       <div className="fixed bottom-3 left-1 right-1 p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex gap-3 z-50 lg:max-w-7xl lg:mx-auto rounded-t-2xl">
-        
         <button 
-          disabled={!isFullyVerified || isSubmitting || isEmployeeMissing}
+          disabled={!isFullyVerified || isSubmitting}
           onClick={async () => {
-            if (isEmployeeMissing) {
-              alert('Please enter employee name before submitting.');
-              return;
-            }
-
             try {
               setIsSubmitting(true);
+              
+              const nozzleReadings = nozzles.map((nozzle) => ({
+                nozzleId: nozzle.id,
+                nozzleName: nozzle.name,
+                omr: parseFloat(nozzle.omr) || 0,
+                cmr: parseFloat(nozzle.cmr) || 0,
+                testing: parseFloat(nozzle.testing) || 0,
+                writtenNet: parseFloat(nozzle.writtenNet) || 0,
+              }));
+
               await onAddEntry({
-                bunk: 'Bunk 1',
                 date,
-                shift,
-                pump,
-                employee,
                 speed: totalSpeed,
                 ms: totalMS,
                 hsd: totalHSD,
@@ -471,42 +332,8 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
                 lubricant: lubricantNum,
                 fleetCard: fleetCardNum,
                 expense: expenseNum,
-                nozzleReadings: nozzles.map((nozzle) => ({
-                  nozzleId: nozzle.id,
-                  nozzleName: nozzle.name,
-                  omr: parseFloat(nozzle.omr) || 0,
-                  cmr: parseFloat(nozzle.cmr) || 0,
-                  testing: parseFloat(nozzle.testing) || 0,
-                  writtenNet: parseFloat(nozzle.writtenNet) || 0,
-                })),
+                nozzleReadings
               });
-
-              const latestMeters = nozzles.reduce<Record<string, number>>((acc, nozzle) => {
-                const cmrNum = parseFloat(nozzle.cmr);
-                if (!Number.isNaN(cmrNum) && cmrNum >= 0) {
-                  acc[nozzle.id] = cmrNum;
-                }
-                return acc;
-              }, {});
-
-              const historyRaw = window.localStorage.getItem(METER_HISTORY_KEY);
-              let historyByPump: Record<string, Record<string, number>> = {};
-
-              if (historyRaw) {
-                try {
-                  const parsed = JSON.parse(historyRaw) as Record<string, Record<string, number> | number>;
-                  for (const [key, value] of Object.entries(parsed)) {
-                    if (value && typeof value === 'object') {
-                      historyByPump[key] = value as Record<string, number>;
-                    }
-                  }
-                } catch {
-                  historyByPump = {};
-                }
-              }
-
-              historyByPump[pump] = latestMeters;
-              window.localStorage.setItem(METER_HISTORY_KEY, JSON.stringify(historyByPump));
             } finally {
               setIsSubmitting(false);
             }
@@ -517,7 +344,7 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
               : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
           }`}
         >
-          <CheckCircle2 className="w-5 h-5" /> {isSubmitting ? 'Saving...' : 'Submit Entry'}
+          <CheckCircle2 className="w-5 h-5" /> {isSubmitting ? 'Saving...' : 'Submit 24 Hrs Report'}
         </button>
       </div>
     </div>

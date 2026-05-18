@@ -22,6 +22,7 @@ export function EditEntryModal({ entry, onClose, onSave }: EditEntryModalProps) 
     cash: entry.cash.toString(),
     phonePe: entry.phonePe.toString(),
     fleetCard: entry.fleetCard.toString(),
+    lubricant: (entry.lubricant || 0).toString(),
     expense: entry.expense.toString(),
   });
   
@@ -29,7 +30,7 @@ export function EditEntryModal({ entry, onClose, onSave }: EditEntryModalProps) 
 
   // Dynamic calculations for the UI
   const currentTotalLiters = (parseFloat(formData.speed) || 0) + (parseFloat(formData.ms) || 0) + (parseFloat(formData.hsd) || 0);
-  const currentTotalCollection = (parseFloat(formData.cash) || 0) + (parseFloat(formData.phonePe) || 0) + (parseFloat(formData.fleetCard) || 0);
+  const currentTotalCollection = (parseFloat(formData.cash) || 0) + (parseFloat(formData.phonePe) || 0) + (parseFloat(formData.fleetCard) || 0) + (parseFloat(formData.lubricant) || 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +48,7 @@ export function EditEntryModal({ entry, onClose, onSave }: EditEntryModalProps) 
         cash: parseFloat(formData.cash) || 0,
         phonePe: parseFloat(formData.phonePe) || 0,
         fleetCard: parseFloat(formData.fleetCard) || 0,
+        lubricant: parseFloat(formData.lubricant) || 0,
         expense: parseFloat(formData.expense) || 0,
       });
     } catch (error) {
@@ -159,7 +161,7 @@ export function EditEntryModal({ entry, onClose, onSave }: EditEntryModalProps) 
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">Collections (INR)</h3>
                 <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-full">Total: ₹{currentTotalCollection.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest pl-1">Cash</label>
                   <div className="relative">
@@ -179,6 +181,13 @@ export function EditEntryModal({ entry, onClose, onSave }: EditEntryModalProps) 
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
                     <input type="number" step="0.01" value={formData.fleetCard === '0' ? '' : formData.fleetCard} onChange={e => handleChange('fleetCard', e.target.value)} className="w-full h-12 pl-8 pr-4 rounded-xl font-bold bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-slate-800 dark:text-white" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest pl-1">Lubricant</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                    <input type="number" step="0.01" value={formData.lubricant === '0' ? '' : formData.lubricant} onChange={e => handleChange('lubricant', e.target.value)} className="w-full h-12 pl-8 pr-4 rounded-xl font-bold bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-slate-800 dark:text-white" />
                   </div>
                 </div>
                 <div className="space-y-1.5">
