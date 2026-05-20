@@ -23,9 +23,9 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
   const [employee, setEmployee] = useState('');
 
   const [prices, setPrices] = useState({
-    Speed: '121.06',
-    MS: '111.59',
-    HSD: '99.33'
+    Speed: '122.01',
+    MS: '112.55',
+    HSD: '100.28'
   });
 
   const [nozzles, setNozzles] = useState<NozzleData[]>(
