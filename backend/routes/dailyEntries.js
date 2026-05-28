@@ -70,4 +70,32 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+router.put('/:id', async (req, res) => {
+  try {
+    const payload = {
+      ...req.body,
+      date: String(req.body?.date || '').trim(),
+      speed: toNumber(req.body?.speed),
+      ms: toNumber(req.body?.ms),
+      hsd: toNumber(req.body?.hsd),
+      cash: toNumber(req.body?.cash),
+      lubricant: toNumber(req.body?.lubricant) || 0,
+      phonePe: toNumber(req.body?.phonePe),
+      fleetCard: toNumber(req.body?.fleetCard),
+      expense: toNumber(req.body?.expense) || 0,
+      nozzleReadings: normalizeNozzleReadings(req.body?.nozzleReadings),
+    };
+
+    const updatedEntry = await DailyEntry.findByIdAndUpdate(req.params.id, payload, { new: true, runValidators: true });
+    if (!updatedEntry) return res.status(404).json({ success: false, error: 'Daily entry not found' });
+    res.json({ success: true, data: updatedEntry });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ success: false, error: 'A daily entry for this date already exists.' });
+    }
+    const validationErrors = error?.errors ? Object.values(error.errors).map(item => item.message) : [];
+    res.status(400).json({ success: false, error: 'Failed to update daily entry', message: error.message, validationErrors });
+  }
+});
+
 export default router;

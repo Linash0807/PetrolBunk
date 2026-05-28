@@ -174,10 +174,16 @@ function App() {
   const [entries, setEntries] = useState<ShiftEntry[]>([]);
   const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
   const [editingEntry, setEditingEntry] = useState<ShiftEntry | null>(null);
+  const [editingDailyEntry, setEditingDailyEntry] = useState<DailyEntry | null>(null);
 
   const navigateTo = (path: string) => {
     const nextPath = normalizePath(path);
     setCurrentPath(nextPath);
+
+    if (nextPath !== '/24hrs') {
+      setEditingDailyEntry(null);
+    }
+    setEditingEntry(null);
 
     if (window.location.pathname !== nextPath) {
       window.history.pushState({}, '', nextPath);
@@ -295,7 +301,62 @@ function App() {
     navigateTo('/reports');
   };
 
+  const handleUpdateDailyEntry = async (entry: DailyEntry) => {
+    if (!entry._id) {
+      alert("Cannot update: Daily entry ID is missing.");
+      return;
+    }
+    const response = await fetchFromApi(`/daily-entries/${entry._id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(entry),
+    });
+
+    const result = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const backendMessage = result?.message || result?.error;
+      throw new Error(backendMessage ? `Failed to update 24 Hrs Report: ${backendMessage}` : 'Failed to update 24 Hrs Report');
+    }
+
+    if (!result?.success || !result?.data) {
+      throw new Error('Invalid response while updating 24 Hrs Report');
+    }
+
+    setDailyEntries((prev) => prev.map(e => e._id === entry._id ? result.data : e));
+    setEditingDailyEntry(null);
+    alert('24 Hrs Report updated successfully!');
+    navigateTo('/reports');
+  };
+
+  const handleDeleteDailyEntry = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this 24 Hrs Bunk Report? This action cannot be undone.')) {
+      return;
+    }
+    try {
+      const response = await fetchFromApi(`/daily-entries/${id}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.message || result?.error || 'Failed to delete 24 Hrs Report');
+      }
+
+      setDailyEntries((prev) => prev.filter(e => e._id !== id));
+      alert('24 Hrs Report deleted successfully!');
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : 'Error deleting 24 Hrs Report');
+    }
+  };
+
   const handleAddDailyEntry = async (entry: DailyEntry) => {
+    if (entry._id) {
+      return handleUpdateDailyEntry(entry);
+    }
     const response = await fetchFromApi('/daily-entries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -371,8 +432,33 @@ function App() {
       <DashboardLayout activePath={currentPath} onNavigate={navigateTo}>
         {currentPath === '/' && <DashboardOverview entries={entries} onNavigate={navigateTo} />}
         {currentPath === '/new-entry' && <NewEntryForm onAddEntry={handleAddEntry} entries={entries} />}
-        {currentPath === '/24hrs' && <TwentyFourHourForm onAddEntry={handleAddDailyEntry} />}
-        {currentPath === '/reports' && <Reports entries={entries} dailyEntries={dailyEntries} onEditEntry={setEditingEntry} onDeleteEntry={handleDeleteEntry} />}
+        {currentPath === '/24hrs' && (
+          <TwentyFourHourForm 
+            onAddEntry={handleAddDailyEntry} 
+            initialEntry={editingDailyEntry} 
+            onCancel={() => {
+              setEditingDailyEntry(null);
+              navigateTo('/reports');
+            }} 
+          />
+        )}
+        {currentPath === '/reports' && (
+          <Reports 
+            entries={entries} 
+            dailyEntries={dailyEntries} 
+            onEditEntry={setEditingEntry} 
+            onDeleteEntry={handleDeleteEntry}
+            onEditDailyEntry={(entry) => {
+              setEditingDailyEntry(entry);
+              navigateTo('/24hrs');
+            }}
+            onDeleteDailyEntry={handleDeleteDailyEntry}
+            onNavigateTo24Hrs={(date) => {
+              setEditingDailyEntry(null);
+              navigateTo('/24hrs');
+            }}
+          />
+        )}
       </DashboardLayout>
       
       {editingEntry && (

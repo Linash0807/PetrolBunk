@@ -22,10 +22,18 @@ const INITIAL_NOZZLES = NOZZLE_NAMES.map(name => ({
 
 interface TwentyFourHourFormProps {
   onAddEntry: (entry: DailyEntry) => Promise<void>;
+  initialEntry?: DailyEntry | null;
+  onCancel?: () => void;
 }
 
-export function TwentyFourHourForm({ onAddEntry }: TwentyFourHourFormProps) {
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+export function TwentyFourHourForm({ onAddEntry, initialEntry, onCancel }: TwentyFourHourFormProps) {
+  const [date, setDate] = useState(() => {
+    if (initialEntry?.date) {
+      // Ensure date format is YYYY-MM-DD
+      return initialEntry.date.split('T')[0];
+    }
+    return new Date().toISOString().split('T')[0];
+  });
 
   const [prices, setPrices] = useState({
     Speed: '121.06',
@@ -33,13 +41,30 @@ export function TwentyFourHourForm({ onAddEntry }: TwentyFourHourFormProps) {
     HSD: '99.33'
   });
 
-  const [nozzles, setNozzles] = useState<NozzleData[]>(INITIAL_NOZZLES);
+  const [nozzles, setNozzles] = useState<NozzleData[]>(() => {
+    if (initialEntry?.nozzleReadings && initialEntry.nozzleReadings.length > 0) {
+      return INITIAL_NOZZLES.map(initial => {
+        const found = initialEntry.nozzleReadings!.find(
+          r => r.nozzleId === initial.id || r.nozzleName === initial.name
+        );
+        return {
+          id: initial.id,
+          name: initial.name,
+          omr: found ? found.omr.toString() : '',
+          cmr: found ? found.cmr.toString() : '',
+          testing: found ? found.testing.toString() : '',
+          writtenNet: found ? found.writtenNet.toString() : ''
+        };
+      });
+    }
+    return INITIAL_NOZZLES;
+  });
 
-  const [phonePe, setPhonePe] = useState('');
-  const [lubricant, setLubricant] = useState('');
-  const [expense, setexpense] = useState(''); 
-  const [fleetCard, setFleetCard] = useState('');
-  const [actualCash, setActualCash] = useState('');
+  const [phonePe, setPhonePe] = useState(() => initialEntry?.phonePe?.toString() || '');
+  const [lubricant, setLubricant] = useState(() => initialEntry?.lubricant?.toString() || '');
+  const [expense, setexpense] = useState(() => initialEntry?.expense?.toString() || ''); 
+  const [fleetCard, setFleetCard] = useState(() => initialEntry?.fleetCard?.toString() || '');
+  const [actualCash, setActualCash] = useState(() => initialEntry?.cash?.toString() || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleNozzleChange = (index: number, field: keyof NozzleData, value: string) => {
@@ -165,10 +190,10 @@ export function TwentyFourHourForm({ onAddEntry }: TwentyFourHourFormProps) {
       <div className="flex items-center justify-between px-2 pt-2 gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            24 Hrs Bunk Report
+            {initialEntry ? 'Edit 24 Hrs Bunk Report' : '24 Hrs Bunk Report'}
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Fill meter readings for all pumps at the end of the day.
+            {initialEntry ? 'Modify meter readings and verify collections.' : 'Fill meter readings for all pumps at the end of the day.'}
           </p>
         </div>
       </div>
@@ -186,7 +211,8 @@ export function TwentyFourHourForm({ onAddEntry }: TwentyFourHourFormProps) {
             type="date" 
             value={date}
             onChange={e => setDate(e.target.value)}
-            className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+            disabled={!!initialEntry}
+            className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:opacity-75 disabled:cursor-not-allowed"
           />
         </div>
       </div>
@@ -307,6 +333,15 @@ export function TwentyFourHourForm({ onAddEntry }: TwentyFourHourFormProps) {
 
       {/* Sticky Bottom Bar */}
       <div className="fixed bottom-3 left-1 right-1 p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex gap-3 z-50 lg:max-w-7xl lg:mx-auto rounded-t-2xl">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-6 py-4 rounded-xl border border-slate-350 dark:border-slate-700 font-bold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95 shadow-sm"
+          >
+            Cancel
+          </button>
+        )}
         <button 
           disabled={!isFullyVerified || isSubmitting}
           onClick={async () => {
@@ -323,6 +358,7 @@ export function TwentyFourHourForm({ onAddEntry }: TwentyFourHourFormProps) {
               }));
 
               await onAddEntry({
+                ...(initialEntry?._id ? { _id: initialEntry._id } : {}),
                 date,
                 speed: totalSpeed,
                 ms: totalMS,
@@ -344,7 +380,7 @@ export function TwentyFourHourForm({ onAddEntry }: TwentyFourHourFormProps) {
               : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
           }`}
         >
-          <CheckCircle2 className="w-5 h-5" /> {isSubmitting ? 'Saving...' : 'Submit 24 Hrs Report'}
+          <CheckCircle2 className="w-5 h-5" /> {isSubmitting ? 'Saving...' : initialEntry ? 'Update 24 Hrs Report' : 'Submit 24 Hrs Report'}
         </button>
       </div>
     </div>
