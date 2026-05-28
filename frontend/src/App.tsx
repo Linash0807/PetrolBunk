@@ -453,7 +453,7 @@ function App() {
               navigateTo('/24hrs');
             }}
             onDeleteDailyEntry={handleDeleteDailyEntry}
-            onNavigateTo24Hrs={(date) => {
+            onNavigateTo24Hrs={() => {
               setEditingDailyEntry(null);
               navigateTo('/24hrs');
             }}
