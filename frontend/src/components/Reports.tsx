@@ -16,10 +16,10 @@ interface ReportsProps {
   onNavigateTo24Hrs?: (date?: string) => void;
 }
 
-export function Reports({ 
-  entries, 
-  dailyEntries = [], 
-  onEditEntry, 
+export function Reports({
+  entries,
+  dailyEntries = [],
+  onEditEntry,
   onDeleteEntry,
   onEditDailyEntry,
   onDeleteDailyEntry,
@@ -30,7 +30,7 @@ export function Reports({
   const [customDate, setCustomDate] = useState<string>('');
   const [show24Hrs, setShow24Hrs] = useState(false);
   const [reportType, setReportType] = useState<'shift' | 'daily'>('shift');
-  
+
   const todayDate = new Date();
   const localToday = new Date(todayDate.getTime() - todayDate.getTimezoneOffset() * 60000)
     .toISOString()
@@ -56,12 +56,12 @@ export function Reports({
   const reportDate = reportDateISO ? new Date(reportDateISO).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB');
   const bunkNumber = selectedBunk === 'All' ? 'All' : selectedBunk.replace(/\D+/g, '') || selectedBunk;
 
-  const currentData = dateFilter === 'custom' && !customDate 
-    ? [] 
+  const currentData = dateFilter === 'custom' && !customDate
+    ? []
     : bunkEntries.filter(e => {
-        if (!e.date) return false;
-        return e.date.split('T')[0] === activeDate.split('T')[0];
-      });
+      if (!e.date) return false;
+      return e.date.split('T')[0] === activeDate.split('T')[0];
+    });
 
   // Calculate Totals based on reportType
   const totalSpeed = reportType === 'shift'
@@ -98,10 +98,9 @@ export function Reports({
   const totalExpense = reportType === 'shift'
     ? currentData.reduce((acc, curr) => acc + (curr.expense || 0), 0)
     : (activeDailyEntry ? (activeDailyEntry.expense || 0) : 0);
-
-  const totalCollection = reportType === 'shift'
-    ? totalCash + totalPhonePe + totalFleetCard + totalLubricant
-    : totalCash + totalPhonePe + totalFleetCard + totalLubricant - totalExpense;
+/* gurthu petuko ra
+*/ 
+  const totalCollection = totalCash + totalPhonePe + totalFleetCard + totalLubricant + totalExpense;
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -173,7 +172,7 @@ export function Reports({
     doc.setFontSize(10);
     doc.text(`Date: ${reportDate}`, 40, 58);
     doc.text(`Bunk No: ${bunkNumber}`, 180, 58);
-   /* doc.text(`Testing Deduction: ${testingNum.toFixed(2)} L`, 300, 58);*/
+    /* doc.text(`Testing Deduction: ${testingNum.toFixed(2)} L`, 300, 58);*/
 
     autoTable(doc, {
       startY: 72,
@@ -225,18 +224,18 @@ export function Reports({
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-in fade-in duration-500 print:max-w-none print:space-y-2 print:pb-0 print:bg-white print:text-black print:text-[11px]">
-      
+
       {/* Header section (Hidden in print) */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-2 gap-4 print:hidden">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Day End Report</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {reportType === 'shift' 
-              ? 'Shift-wise sales summary and employee data.' 
+            {reportType === 'shift'
+              ? 'Shift-wise sales summary and employee data.'
               : '24 Hrs daily bunk reports summary and meter readings.'}
           </p>
         </div>
-        <button 
+        <button
           onClick={handleDownloadPdf}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-sm shadow-blue-600/20 active:scale-95 w-full sm:w-auto justify-center"
         >
@@ -248,21 +247,19 @@ export function Reports({
       <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-2xl w-full sm:w-fit print:hidden border border-slate-200/50 dark:border-slate-850/30">
         <button
           onClick={() => setReportType('shift')}
-          className={`flex-1 sm:flex-initial px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-            reportType === 'shift'
+          className={`flex-1 sm:flex-initial px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${reportType === 'shift'
               ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
+            }`}
         >
           Shift Entries
         </button>
         <button
           onClick={() => setReportType('daily')}
-          className={`flex-1 sm:flex-initial px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-            reportType === 'daily'
+          className={`flex-1 sm:flex-initial px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${reportType === 'daily'
               ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
+            }`}
         >
           Daily Bunk (24h) Reports
         </button>
@@ -283,14 +280,14 @@ export function Reports({
             Configuration
           </h3>
         </div>
-        
+
         <div className="flex flex-col md:flex-row gap-6">
           {reportType === 'shift' && (
             <div className="flex-1 space-y-1.5 print:hidden">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-slate-400" /> Select Bunk
               </label>
-              <select 
+              <select
                 value={selectedBunk}
                 onChange={(e) => setSelectedBunk(e.target.value)}
                 className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
@@ -306,7 +303,7 @@ export function Reports({
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
               <History className="w-4 h-4 text-slate-400" /> Date Filter
             </label>
-            <select 
+            <select
               value={dateFilter}
               onChange={(e) => {
                 setDateFilter(e.target.value as any);
@@ -325,7 +322,7 @@ export function Reports({
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
                 <History className="w-4 h-4 text-slate-400" /> Select Date
               </label>
-              <input 
+              <input
                 type="date"
                 value={customDate}
                 max={localToday}
@@ -353,7 +350,7 @@ export function Reports({
             <Banknote className="w-5 h-5 print:hidden" />
             <span className="text-sm font-bold uppercase tracking-wider print:text-[10px]">Total Cash</span>
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white print:text-sm print:text-black">₹{(totalCash/1000).toFixed(1)}k</div>
+          <div className="text-2xl font-black text-slate-900 dark:text-white print:text-sm print:text-black">₹{(totalCash / 1000).toFixed(1)}k</div>
           <div className="text-xs text-slate-500 mt-1 print:text-[10px] print:text-black print:mt-0.5">₹{totalCash.toLocaleString('en-IN')}</div>
         </div>
 
@@ -362,7 +359,7 @@ export function Reports({
             <Zap className="w-5 h-5 print:hidden" />
             <span className="text-sm font-bold uppercase tracking-wider print:text-[10px]">PhonePe</span>
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white print:text-sm print:text-black">₹{(totalPhonePe/1000).toFixed(1)}k</div>
+          <div className="text-2xl font-black text-slate-900 dark:text-white print:text-sm print:text-black">₹{(totalPhonePe / 1000).toFixed(1)}k</div>
           <div className="text-xs text-slate-500 mt-1 print:text-[10px] print:text-black print:mt-0.5">₹{totalPhonePe.toLocaleString('en-IN')}</div>
         </div>
 
@@ -371,7 +368,7 @@ export function Reports({
             <CreditCard className="w-5 h-5 print:hidden" />
             <span className="text-sm font-bold uppercase tracking-wider print:text-[10px]">Fleet Card</span>
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white print:text-sm print:text-black">₹{(totalFleetCard/1000).toFixed(1)}k</div>
+          <div className="text-2xl font-black text-slate-900 dark:text-white print:text-sm print:text-black">₹{(totalFleetCard / 1000).toFixed(1)}k</div>
           <div className="text-xs text-slate-500 mt-1 print:text-[10px] print:text-black print:mt-0.5">₹{totalFleetCard.toLocaleString('en-IN')}</div>
         </div>
       </div>
@@ -447,7 +444,7 @@ export function Reports({
                           Shift Total: ₹{(shift.cash + shift.phonePe + shift.fleetCard + (shift.lubricant || 0)).toLocaleString('en-IN')}
                         </div>
                         {onEditEntry && (
-                          <button 
+                          <button
                             onClick={() => onEditEntry(shift)}
                             className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors print:hidden"
                             title="Edit Entry"
@@ -456,7 +453,7 @@ export function Reports({
                           </button>
                         )}
                         {onDeleteEntry && shift._id && (
-                          <button 
+                          <button
                             onClick={() => {
                               if (window.confirm('Are you sure you want to delete this shift entry? This action cannot be undone.')) {
                                 onDeleteEntry(shift._id!);
@@ -470,7 +467,7 @@ export function Reports({
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6 print:grid-cols-2 print:p-2 print:gap-2">
                       {/* Sales Column */}
                       <div className="space-y-3 print:space-y-1">
@@ -545,7 +542,7 @@ export function Reports({
                 </div>
                 <div className="flex items-center gap-2">
                   {onEditDailyEntry && (
-                    <button 
+                    <button
                       onClick={() => onEditDailyEntry(activeDailyEntry)}
                       className="p-2 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all print:hidden flex items-center gap-1.5 font-semibold text-sm border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900"
                       title="Edit Daily Report"
@@ -554,7 +551,7 @@ export function Reports({
                     </button>
                   )}
                   {onDeleteDailyEntry && activeDailyEntry._id && (
-                    <button 
+                    <button
                       onClick={() => {
                         if (window.confirm('Are you sure you want to delete this 24 Hrs Report? This action cannot be undone.')) {
                           onDeleteDailyEntry(activeDailyEntry._id!);
@@ -713,11 +710,10 @@ export function Reports({
                       const entryNetCollection = (entry.cash || 0) + (entry.phonePe || 0) + (entry.fleetCard || 0) + (entry.lubricant || 0) - (entry.expense || 0);
 
                       return (
-                        <tr 
-                          key={entry._id} 
-                          className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all ${
-                            activeDate.split('T')[0] === entry.date.split('T')[0] ? 'bg-blue-50/40 dark:bg-blue-950/10' : ''
-                          }`}
+                        <tr
+                          key={entry._id}
+                          className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all ${activeDate.split('T')[0] === entry.date.split('T')[0] ? 'bg-blue-50/40 dark:bg-blue-950/10' : ''
+                            }`}
                         >
                           <td className="px-5 py-3 font-semibold text-slate-900 dark:text-white">
                             <button
@@ -742,7 +738,7 @@ export function Reports({
                           <td className="px-5 py-3">
                             <div className="flex items-center justify-center gap-1.5">
                               {onEditDailyEntry && (
-                                <button 
+                                <button
                                   onClick={() => onEditDailyEntry(entry)}
                                   className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
                                   title="Edit Report"
@@ -751,7 +747,7 @@ export function Reports({
                                 </button>
                               )}
                               {onDeleteDailyEntry && entry._id && (
-                                <button 
+                                <button
                                   onClick={() => {
                                     onDeleteDailyEntry(entry._id!);
                                   }}
