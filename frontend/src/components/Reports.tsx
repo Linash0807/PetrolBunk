@@ -143,7 +143,7 @@ export function Reports({
           ['PhonePe Collection', `Rs ${totalPhonePe.toLocaleString('en-IN')}`],
           ['Fleet Card Collection', `Rs ${totalFleetCard.toLocaleString('en-IN')}`],
           ['Lubricant Collection', `Rs ${totalLubricant.toLocaleString('en-IN')}`],
-          ['Expenses', `Rs ${totalExpense.toLocaleString('en-IN')}`],
+       //   ['Expenses', `Rs ${totalExpense.toLocaleString('en-IN')}`],
           ['Net Collection', `Rs ${totalCollection.toLocaleString('en-IN')}`],
         ],
       });
@@ -199,7 +199,7 @@ export function Reports({
         ['PhonePe', `Rs ${totalPhonePe.toLocaleString('en-IN')}`],
         ['Fleet Card', `Rs ${totalFleetCard.toLocaleString('en-IN')}`],
         ['Lubricant', `Rs ${totalLubricant.toLocaleString('en-IN')}`],
-        ['Expenses', `Rs ${totalExpense.toLocaleString('en-IN')}`],
+       // ['Expenses', `Rs ${totalExpense.toLocaleString('en-IN')}`],
         ['Net Collection', `Rs ${totalCollection.toLocaleString('en-IN')}`],
       ],
     });
@@ -225,7 +225,7 @@ export function Reports({
           `Rs ${shift.phonePe.toLocaleString('en-IN')}`,
           `Rs ${shift.fleetCard.toLocaleString('en-IN')}`,
           `Rs ${(shift.lubricant || 0).toLocaleString('en-IN')}`,
-          `Rs ${(shift.expense || 0).toLocaleString('en-IN')}`,
+      //    `Rs ${(shift.expense || 0).toLocaleString('en-IN')}`,
           `Rs ${shiftTotal.toLocaleString('en-IN')}`,
         ];
       }),
