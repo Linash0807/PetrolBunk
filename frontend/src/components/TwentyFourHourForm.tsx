@@ -131,7 +131,7 @@ export function TwentyFourHourForm({ onAddEntry, initialEntry, onCancel }: Twent
   const hsdPriceNum = parseFloat(prices.HSD) || 0;
 
   const totalAmount = Math.round(((totalSpeed * speedPriceNum) + (totalMS * msPriceNum) + (totalHSD * hsdPriceNum)) * 100) / 100;
-  const calculatedCash = Math.round(Math.max(0, totalAmount - phonePeNum - fleetCardNum - expenseNum - lubricantNum) * 100) / 100;
+  const calculatedCash = Math.round(Math.max(0, totalAmount - phonePeNum - fleetCardNum - expenseNum + lubricantNum) * 100) / 100;
 
   const hasAnyInputs = nozzles.some(n => n.cmr !== '' || n.writtenNet !== '');
   const netMatch = Math.abs(totalNet - totalWrittenNet) < 0.01 && mismatchedNozzleNames.length === 0 && !hasNegativeSales;
