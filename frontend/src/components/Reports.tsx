@@ -100,7 +100,7 @@ export function Reports({
     : (activeDailyEntry ? (activeDailyEntry.expense || 0) : 0);
 /* gurthu petuko ra
 */ 
-  const totalCollection = totalCash + totalPhonePe + totalFleetCard + totalLubricant + totalExpense;
+  const totalCollection = totalCash + totalPhonePe + totalFleetCard + totalLubricant - totalExpense;
 
   const handleDownloadPdf = () => {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
