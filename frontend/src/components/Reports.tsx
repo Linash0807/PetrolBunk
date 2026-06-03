@@ -179,7 +179,7 @@ export function Reports({
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.text(`Date: ${reportDate}`, 40, 58);
-    doc.text(`Bunk No: ${bunkNumber}`, 180, 58);
+    doc.text(`Pump No: ${bunkNumber}`, 180, 58);
     /* doc.text(`Testing Deduction: ${testingNum.toFixed(2)} L`, 300, 58);*/
 
     autoTable(doc, {
@@ -211,7 +211,7 @@ export function Reports({
       theme: 'grid',
       styles: { fontSize: 8, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.5, cellPadding: 3 },
       headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold' },
-      head: [['Employee', 'Shift', 'Pump', 'Speed (L)', 'MS (L)', 'HSD (L)', 'Cash', 'PhonePe', 'Fleet', 'Lubricant',/* 'Expense'*/, 'Shift Total']],
+      head: [['Employee', 'Shift', 'Pump', 'Speed (L)', 'MS (L)', 'HSD (L)', 'Cash', 'PhonePe', 'Fleet', 'Lubricant'/* 'Expense'*/, 'Shift Total']],
       body: currentData.map((shift) => {
         const shiftTotal = shift.cash + shift.phonePe + shift.fleetCard + (shift.lubricant || 0) - (shift.expense || 0);
         return [
