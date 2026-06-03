@@ -30,7 +30,7 @@ export function EditEntryModal({ entry, onClose, onSave }: EditEntryModalProps) 
 
   // Dynamic calculations for the UI
   const currentTotalLiters = (parseFloat(formData.speed) || 0) + (parseFloat(formData.ms) || 0) + (parseFloat(formData.hsd) || 0);
-  const currentTotalCollection = (parseFloat(formData.cash) || 0) + (parseFloat(formData.phonePe) || 0) + (parseFloat(formData.fleetCard) || 0) + (parseFloat(formData.lubricant) || 0);
+  const currentTotalCollection = (parseFloat(formData.cash) || 0) + (parseFloat(formData.phonePe) || 0) + (parseFloat(formData.fleetCard) || 0) + (parseFloat(formData.lubricant) || 0) - (parseFloat(formData.expense) || 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

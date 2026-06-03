@@ -9,8 +9,8 @@ interface SidebarProps {
 
 const navItems = [
   { name: 'Dashboard', icon: Home, path: '/' },
-  { name: 'New Entry', icon: PlusCircle, path: '/new-entry' },
-  { name: '24 Hrs Report', icon: PlusCircle, path: '/24hrs' },
+  { name: 'Shift Entry', icon: PlusCircle, path: '/new-entry' },
+  { name: '24hrs Report', icon: PlusCircle, path: '/24hrs' },
   { name: 'Reports', icon: BarChart3, path: '/reports' },
 ];
 

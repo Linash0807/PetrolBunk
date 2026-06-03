@@ -58,7 +58,8 @@ function DashboardOverview({
   const totalPhonePe = todayEntries.reduce((acc, curr) => acc + curr.phonePe, 0);
   const totalFleet = todayEntries.reduce((acc, curr) => acc + curr.fleetCard, 0);
   const totalLubricant = todayEntries.reduce((acc, curr) => acc + (curr.lubricant || 0), 0);
-  const totalCollection = totalCash + totalPhonePe + totalFleet + totalLubricant;
+  const totalExpense = todayEntries.reduce((acc, curr) => acc + (curr.expense || 0), 0);
+  const totalCollection = totalCash + totalPhonePe + totalFleet + totalLubricant - totalExpense;
 
   const totalShifts = todayEntries.length;
   const avgLitersPerShift = totalShifts > 0 ? totalLiters / totalShifts : 0;
@@ -136,7 +137,7 @@ function DashboardOverview({
 
             {latestEntries.map((entry, index) => {
               const shiftLiters = entry.speed + entry.ms + entry.hsd;
-              const shiftTotal = entry.cash + entry.phonePe + entry.fleetCard + (entry.lubricant || 0);
+              const shiftTotal = entry.cash + entry.phonePe + entry.fleetCard + (entry.lubricant || 0) - (entry.expense || 0);
 
               return (
                 <div

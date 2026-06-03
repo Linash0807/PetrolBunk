@@ -1,10 +1,16 @@
 import { useState } from 'react';
-import { MapPin, Printer, Fuel, CreditCard, Banknote, History, Zap, Pencil, Trash2 } from 'lucide-react';
+import { MapPin, Printer, Fuel, CreditCard, Banknote, History, Zap, Pencil, Trash2, IndianRupee } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { ShiftEntry, DailyEntry } from '../types';
 
 const BUNKS = ['All', 'Bunk 1', 'Bunk 2', 'Bunk 3', 'Bunk 4', 'Bunk 5', 'Bunk 6', 'Bunk 7'];
+
+const FUEL_PRICES = {
+  Speed: 125.82,
+  MS: 116.35,
+  HSD: 104.08,
+};
 
 interface ReportsProps {
   entries: ShiftEntry[];
@@ -98,8 +104,8 @@ export function Reports({
   const totalExpense = reportType === 'shift'
     ? currentData.reduce((acc, curr) => acc + (curr.expense || 0), 0)
     : (activeDailyEntry ? (activeDailyEntry.expense || 0) : 0);
-/* gurthu petuko ra
-*/ 
+  const totalSalesRs = (totalSpeed * FUEL_PRICES.Speed) + (totalMS * FUEL_PRICES.MS) + (totalHSD * FUEL_PRICES.HSD);
+  const totalExpectedCash = Math.max(0, totalSalesRs - totalPhonePe - totalFleetCard - totalExpense + totalLubricant);
   const totalCollection = totalCash + totalPhonePe + totalFleetCard + totalLubricant - totalExpense;
 
   const handleDownloadPdf = () => {
@@ -127,16 +133,18 @@ export function Reports({
         styles: { fontSize: 9, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.5, cellPadding: 4 },
         headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold' },
         body: [
-          ['Total MS sold', `${totalMS.toFixed(2)} L`],
-          ['Total HSD sold', `${totalHSD.toFixed(2)} L`],
-          ['Total Speed sold', `${totalSpeed.toFixed(2)} L`],
+          ['Total MS sold', `${totalMS.toFixed(2)} L (Rs ${(totalMS * FUEL_PRICES.MS).toLocaleString('en-IN')})`],
+          ['Total HSD sold', `${totalHSD.toFixed(2)} L (Rs ${(totalHSD * FUEL_PRICES.HSD).toLocaleString('en-IN')})`],
+          ['Total Speed sold', `${totalSpeed.toFixed(2)} L (Rs ${(totalSpeed * FUEL_PRICES.Speed).toLocaleString('en-IN')})`],
           ['Total Liters sold', `${netTotalLiters.toFixed(2)} L`],
-          ['Total Cash Collection', `Rs ${totalCash.toLocaleString('en-IN')}`],
+          ['Total Fuel Sales (Rs)', `Rs ${totalSalesRs.toLocaleString('en-IN')}`],
+          ['Total Cash Collection (Actual)', `Rs ${totalCash.toLocaleString('en-IN')}`],
+          ['Expected Cash (Sales - PhonePe - Fleet + Lub - Exp)', `Rs ${totalExpectedCash.toLocaleString('en-IN')}`],
           ['PhonePe Collection', `Rs ${totalPhonePe.toLocaleString('en-IN')}`],
           ['Fleet Card Collection', `Rs ${totalFleetCard.toLocaleString('en-IN')}`],
           ['Lubricant Collection', `Rs ${totalLubricant.toLocaleString('en-IN')}`],
           ['Expenses', `Rs ${totalExpense.toLocaleString('en-IN')}`],
-          ['Total Collection', `Rs ${totalCollection.toLocaleString('en-IN')}`],
+          ['Net Collection', `Rs ${totalCollection.toLocaleString('en-IN')}`],
         ],
       });
 
@@ -182,14 +190,17 @@ export function Reports({
       body: [
         ['Net Liters', `${netTotalLiters.toFixed(2)} L`],
         ['Gross Liters', `${grossTotalLiters.toFixed(2)} L`],
-        ['Total Speed', `${totalSpeed.toFixed(2)} L`],
-        ['Total MS', `${totalMS.toFixed(2)} L`],
-        ['Total HSD', `${totalHSD.toFixed(2)} L`],
-        ['Total Cash', `Rs ${totalCash.toLocaleString('en-IN')}`],
+        ['Total Speed', `${totalSpeed.toFixed(2)} L (Rs ${(totalSpeed * FUEL_PRICES.Speed).toLocaleString('en-IN')})`],
+        ['Total MS', `${totalMS.toFixed(2)} L (Rs ${(totalMS * FUEL_PRICES.MS).toLocaleString('en-IN')})`],
+        ['Total HSD', `${totalHSD.toFixed(2)} L (Rs ${(totalHSD * FUEL_PRICES.HSD).toLocaleString('en-IN')})`],
+        ['Total Fuel Sales (Rs)', `Rs ${totalSalesRs.toLocaleString('en-IN')}`],
+        ['Expected Cash (Sales - PhonePe - Fleet + Lub - Exp)', `Rs ${totalExpectedCash.toLocaleString('en-IN')}`],
+        ['Total Cash Present (Actual)', `Rs ${totalCash.toLocaleString('en-IN')}`],
         ['PhonePe', `Rs ${totalPhonePe.toLocaleString('en-IN')}`],
         ['Fleet Card', `Rs ${totalFleetCard.toLocaleString('en-IN')}`],
         ['Lubricant', `Rs ${totalLubricant.toLocaleString('en-IN')}`],
-        ['Total Collection', `Rs ${totalCollection.toLocaleString('en-IN')}`],
+        ['Expenses', `Rs ${totalExpense.toLocaleString('en-IN')}`],
+        ['Net Collection', `Rs ${totalCollection.toLocaleString('en-IN')}`],
       ],
     });
 
@@ -200,9 +211,9 @@ export function Reports({
       theme: 'grid',
       styles: { fontSize: 8, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.5, cellPadding: 3 },
       headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold' },
-      head: [['Employee', 'Shift', 'Pump', 'Speed (L)', 'MS (L)', 'HSD (L)', 'Cash', 'PhonePe', 'Fleet', 'Lubricant', 'Shift Total']],
+      head: [['Employee', 'Shift', 'Pump', 'Speed (L)', 'MS (L)', 'HSD (L)', 'Cash', 'PhonePe', 'Fleet', 'Lubricant', 'Expense', 'Shift Total']],
       body: currentData.map((shift) => {
-        const shiftTotal = shift.cash + shift.phonePe + shift.fleetCard + (shift.lubricant || 0);
+        const shiftTotal = shift.cash + shift.phonePe + shift.fleetCard + (shift.lubricant || 0) - (shift.expense || 0);
         return [
           shift.employee || 'Unknown',
           `Shift ${shift.shift}`,
@@ -214,6 +225,7 @@ export function Reports({
           `Rs ${shift.phonePe.toLocaleString('en-IN')}`,
           `Rs ${shift.fleetCard.toLocaleString('en-IN')}`,
           `Rs ${(shift.lubricant || 0).toLocaleString('en-IN')}`,
+          `Rs ${(shift.expense || 0).toLocaleString('en-IN')}`,
           `Rs ${shiftTotal.toLocaleString('en-IN')}`,
         ];
       }),
@@ -335,7 +347,8 @@ export function Reports({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 print:grid-cols-4 print:gap-1">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 print:grid-cols-6 print:gap-1">
+        {/* Net Liters Card */}
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-5 border border-blue-100 dark:border-blue-800/50 print:break-inside-avoid print:bg-white print:border-black print:p-2">
           <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-2 print:text-black print:mb-1">
             <Fuel className="w-5 h-5 print:hidden" />
@@ -345,15 +358,37 @@ export function Reports({
           <div className="text-xs text-slate-500 mt-1 print:text-[10px] print:text-black print:mt-0.5">Gross: {grossTotalLiters.toFixed(2)} L</div>
         </div>
 
+        {/* Total Sales Card */}
+        <div className="bg-gradient-to-br from-cyan-50 to-sky-50 dark:from-cyan-900/20 dark:to-sky-900/20 rounded-2xl p-5 border border-cyan-100 dark:border-cyan-800/50 print:break-inside-avoid print:bg-white print:border-black print:p-2">
+          <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 mb-2 print:text-black print:mb-1">
+            <IndianRupee className="w-5 h-5 print:hidden" />
+            <span className="text-sm font-bold uppercase tracking-wider print:text-[10px]">Total Sales</span>
+          </div>
+          <div className="text-2xl font-black text-slate-900 dark:text-white print:text-sm print:text-black">₹{(totalSalesRs / 1000).toFixed(1)}k</div>
+          <div className="text-xs text-slate-500 mt-1 print:text-[10px] print:text-black print:mt-0.5">₹{Math.round(totalSalesRs).toLocaleString('en-IN')}</div>
+        </div>
+
+        {/* Expected Cash Card */}
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl p-5 border border-amber-100 dark:border-amber-800/50 print:break-inside-avoid print:bg-white print:border-black print:p-2">
+          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-2 print:text-black print:mb-1">
+            <Banknote className="w-5 h-5 print:hidden" />
+            <span className="text-sm font-bold uppercase tracking-wider print:text-[10px]">Expected Cash</span>
+          </div>
+          <div className="text-2xl font-black text-slate-900 dark:text-white print:text-sm print:text-black">₹{(totalExpectedCash / 1000).toFixed(1)}k</div>
+          <div className="text-xs text-slate-500 mt-1 print:text-[10px] print:text-black print:mt-0.5">₹{Math.round(totalExpectedCash).toLocaleString('en-IN')}</div>
+        </div>
+
+        {/* Actual Cash Card */}
         <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-5 border border-emerald-100 dark:border-emerald-800/50 print:break-inside-avoid print:bg-white print:border-black print:p-2">
           <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-2 print:text-black print:mb-1">
             <Banknote className="w-5 h-5 print:hidden" />
-            <span className="text-sm font-bold uppercase tracking-wider print:text-[10px]">Total Cash</span>
+            <span className="text-sm font-bold uppercase tracking-wider print:text-[10px]">Actual Cash</span>
           </div>
           <div className="text-2xl font-black text-slate-900 dark:text-white print:text-sm print:text-black">₹{(totalCash / 1000).toFixed(1)}k</div>
           <div className="text-xs text-slate-500 mt-1 print:text-[10px] print:text-black print:mt-0.5">₹{totalCash.toLocaleString('en-IN')}</div>
         </div>
 
+        {/* PhonePe Card */}
         <div className="bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-900/20 dark:to-fuchsia-900/20 rounded-2xl p-5 border border-purple-100 dark:border-purple-800/50 print:break-inside-avoid print:bg-white print:border-black print:p-2">
           <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 mb-2 print:text-black print:mb-1">
             <Zap className="w-5 h-5 print:hidden" />
@@ -363,8 +398,9 @@ export function Reports({
           <div className="text-xs text-slate-500 mt-1 print:text-[10px] print:text-black print:mt-0.5">₹{totalPhonePe.toLocaleString('en-IN')}</div>
         </div>
 
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-2xl p-5 border border-amber-100 dark:border-amber-800/50 print:break-inside-avoid print:bg-white print:border-black print:p-2">
-          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-2 print:text-black print:mb-1">
+        {/* Fleet Card Card */}
+        <div className="bg-gradient-to-br from-slate-50 to-zinc-50 dark:from-slate-900/20 dark:to-zinc-900/20 rounded-2xl p-5 border border-slate-200 dark:border-slate-800/50 print:break-inside-avoid print:bg-white print:border-black print:p-2">
+          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-2 print:text-black print:mb-1">
             <CreditCard className="w-5 h-5 print:hidden" />
             <span className="text-sm font-bold uppercase tracking-wider print:text-[10px]">Fleet Card</span>
           </div>
@@ -441,7 +477,7 @@ export function Reports({
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="text-sm font-semibold text-slate-500 print:text-[10px] print:text-black mr-2">
-                          Shift Total: ₹{(shift.cash + shift.phonePe + shift.fleetCard + (shift.lubricant || 0)).toLocaleString('en-IN')}
+                          Shift Total: ₹{(shift.cash + shift.phonePe + shift.fleetCard + (shift.lubricant || 0) - (shift.expense || 0)).toLocaleString('en-IN')}
                         </div>
                         {onEditEntry && (
                           <button
@@ -476,19 +512,23 @@ export function Reports({
                         </h4>
                         <div className="flex justify-between items-center text-sm print:text-[10px]">
                           <span className="font-medium text-slate-600 dark:text-slate-300 print:text-black">Speed</span>
-                          <span className="font-semibold text-slate-900 dark:text-white print:text-black">{shift.speed.toFixed(2)} L</span>
+                          <span className="font-semibold text-slate-900 dark:text-white print:text-black">{shift.speed.toFixed(2)} L (₹{(shift.speed * FUEL_PRICES.Speed).toLocaleString('en-IN')})</span>
                         </div>
                         <div className="flex justify-between items-center text-sm print:text-[10px]">
                           <span className="font-medium text-slate-600 dark:text-slate-300 print:text-black">MS</span>
-                          <span className="font-semibold text-slate-900 dark:text-white print:text-black">{shift.ms.toFixed(2)} L</span>
+                          <span className="font-semibold text-slate-900 dark:text-white print:text-black">{shift.ms.toFixed(2)} L (₹{(shift.ms * FUEL_PRICES.MS).toLocaleString('en-IN')})</span>
                         </div>
                         <div className="flex justify-between items-center text-sm print:text-[10px]">
                           <span className="font-medium text-slate-600 dark:text-slate-300 print:text-black">HSD</span>
-                          <span className="font-semibold text-slate-900 dark:text-white print:text-black">{shift.hsd.toFixed(2)} L</span>
+                          <span className="font-semibold text-slate-900 dark:text-white print:text-black">{shift.hsd.toFixed(2)} L (₹{(shift.hsd * FUEL_PRICES.HSD).toLocaleString('en-IN')})</span>
                         </div>
                         <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-100 dark:border-slate-800 print:border-black print:pt-1 print:text-[10px]">
-                          <span className="font-bold text-slate-800 dark:text-slate-200 print:text-black">Total</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200 print:text-black">Total Liters</span>
                           <span className="font-bold text-blue-600 dark:text-blue-400 print:text-black">{(shift.speed + shift.ms + shift.hsd).toFixed(2)} L</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm print:text-[10px]">
+                          <span className="font-bold text-slate-800 dark:text-slate-200 print:text-black">Total Fuel Sales</span>
+                          <span className="font-bold text-blue-600 dark:text-blue-400 print:text-black">₹{((shift.speed * FUEL_PRICES.Speed) + (shift.ms * FUEL_PRICES.MS) + (shift.hsd * FUEL_PRICES.HSD)).toLocaleString('en-IN')}</span>
                         </div>
                       </div>
 
@@ -498,8 +538,12 @@ export function Reports({
                           Collections (INR)
                         </h4>
                         <div className="flex justify-between items-center text-sm print:text-[10px]">
-                          <span className="font-medium text-slate-600 dark:text-slate-300 print:text-black">Cash</span>
+                          <span className="font-medium text-slate-600 dark:text-slate-300 print:text-black">Cash (Actual)</span>
                           <span className="font-semibold text-slate-900 dark:text-white print:text-black">₹{shift.cash.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm print:text-[10px]">
+                          <span className="font-medium text-slate-600 dark:text-slate-300 print:text-black">Expected Cash</span>
+                          <span className="font-semibold text-amber-600 dark:text-amber-400 print:text-black font-bold">₹{Math.max(0, ((shift.speed * FUEL_PRICES.Speed) + (shift.ms * FUEL_PRICES.MS) + (shift.hsd * FUEL_PRICES.HSD)) - shift.phonePe - shift.fleetCard - (shift.expense || 0) + (shift.lubricant || 0)).toLocaleString('en-IN')}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm print:text-[10px]">
                           <span className="font-medium text-slate-600 dark:text-slate-300 print:text-black">PhonePe</span>
@@ -515,9 +559,15 @@ export function Reports({
                             <span className="font-semibold text-slate-900 dark:text-white print:text-black">₹{shift.lubricant.toLocaleString('en-IN')}</span>
                           </div>
                         )}
+                        {(shift.expense || 0) > 0 && (
+                          <div className="flex justify-between items-center text-sm print:text-[10px]">
+                            <span className="font-medium text-rose-650 dark:text-rose-400 print:text-black">Expense</span>
+                            <span className="font-semibold text-rose-650 dark:text-rose-450 print:text-black">₹{shift.expense.toLocaleString('en-IN')}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-100 dark:border-slate-800 print:border-black print:pt-1 print:text-[10px]">
-                          <span className="font-bold text-slate-800 dark:text-slate-200 print:text-black">Total</span>
-                          <span className="font-bold text-emerald-600 dark:text-emerald-400 print:text-black">₹{(shift.cash + shift.phonePe + shift.fleetCard + (shift.lubricant || 0)).toLocaleString('en-IN')}</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200 print:text-black">Total Collection</span>
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400 print:text-black">₹{(shift.cash + shift.phonePe + shift.fleetCard + (shift.lubricant || 0) - (shift.expense || 0)).toLocaleString('en-IN')}</span>
                         </div>
                       </div>
                     </div>
@@ -575,19 +625,23 @@ export function Reports({
                     </h4>
                     <div className="flex justify-between items-center text-sm print:text-[10px]">
                       <span className="font-medium text-slate-600 dark:text-slate-300 print:text-black">MS Sales</span>
-                      <span className="font-semibold text-slate-900 dark:text-white print:text-black">{activeDailyEntry.ms.toFixed(2)} L</span>
+                      <span className="font-semibold text-slate-900 dark:text-white print:text-black">{activeDailyEntry.ms.toFixed(2)} L (₹{(activeDailyEntry.ms * FUEL_PRICES.MS).toLocaleString('en-IN')})</span>
                     </div>
                     <div className="flex justify-between items-center text-sm print:text-[10px]">
                       <span className="font-medium text-slate-600 dark:text-slate-300 print:text-black">HSD Sales</span>
-                      <span className="font-semibold text-slate-900 dark:text-white print:text-black">{activeDailyEntry.hsd.toFixed(2)} L</span>
+                      <span className="font-semibold text-slate-900 dark:text-white print:text-black">{activeDailyEntry.hsd.toFixed(2)} L (₹{(activeDailyEntry.hsd * FUEL_PRICES.HSD).toLocaleString('en-IN')})</span>
                     </div>
                     <div className="flex justify-between items-center text-sm print:text-[10px]">
                       <span className="font-medium text-slate-600 dark:text-slate-300 print:text-black">Speed Sales</span>
-                      <span className="font-semibold text-slate-900 dark:text-white print:text-black">{activeDailyEntry.speed.toFixed(2)} L</span>
+                      <span className="font-semibold text-slate-900 dark:text-white print:text-black">{activeDailyEntry.speed.toFixed(2)} L (₹{(activeDailyEntry.speed * FUEL_PRICES.Speed).toLocaleString('en-IN')})</span>
                     </div>
                     <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-100 dark:border-slate-800 print:border-black print:pt-1 print:text-[10px]">
                       <span className="font-bold text-slate-800 dark:text-slate-200 print:text-black">Total Liters</span>
                       <span className="font-bold text-blue-600 dark:text-blue-450 print:text-black">{(activeDailyEntry.ms + activeDailyEntry.hsd + activeDailyEntry.speed).toFixed(2)} L</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm print:text-[10px]">
+                      <span className="font-bold text-slate-800 dark:text-slate-200 print:text-black">Total Fuel Sales (Rs)</span>
+                      <span className="font-bold text-blue-600 dark:text-blue-450 print:text-black">₹{totalSalesRs.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
 
@@ -597,8 +651,12 @@ export function Reports({
                       Collections Breakdown (INR)
                     </h4>
                     <div className="flex justify-between items-center text-sm print:text-[10px]">
-                      <span className="font-medium text-slate-600 dark:text-slate-300 print:text-black">Cash</span>
+                      <span className="font-medium text-slate-600 dark:text-slate-300 print:text-black">Cash (Actual)</span>
                       <span className="font-semibold text-slate-900 dark:text-white print:text-black">₹{activeDailyEntry.cash.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm print:text-[10px]">
+                      <span className="font-medium text-slate-600 dark:text-slate-300 print:text-black">Expected Cash</span>
+                      <span className="font-semibold text-amber-600 dark:text-amber-400 print:text-black font-bold">₹{totalExpectedCash.toLocaleString('en-IN')}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm print:text-[10px]">
                       <span className="font-medium text-slate-600 dark:text-slate-300 print:text-black">PhonePe</span>
@@ -622,7 +680,7 @@ export function Reports({
                     )}
                     <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-100 dark:border-slate-800 print:border-black print:pt-1 print:text-[10px]">
                       <span className="font-bold text-slate-800 dark:text-slate-200 print:text-black">Net Collection</span>
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400 print:text-black">₹{totalCollection.toLocaleString('en-IN')}</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 print:text-black">₹{(activeDailyEntry.cash + activeDailyEntry.phonePe + activeDailyEntry.fleetCard + (activeDailyEntry.lubricant || 0) - (activeDailyEntry.expense || 0)).toLocaleString('en-IN')}</span>
                     </div>
                   </div>
                 </div>

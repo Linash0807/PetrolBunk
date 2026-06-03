@@ -186,7 +186,7 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
   const hsdPriceNum = parseFloat(prices.HSD) || 0;
 
   const totalAmount = Math.round(((totalSpeed * speedPriceNum) + (totalMS * msPriceNum) + (totalHSD * hsdPriceNum)) * 100) / 100;
-  const calculatedCash = Math.round(Math.max(0, totalAmount - phonePeNum - fleetCardNum - expenseNum - lubricantNum) * 100) / 100;
+  const calculatedCash = Math.round(Math.max(0, totalAmount - phonePeNum - fleetCardNum - expenseNum + lubricantNum) * 100) / 100;
 
   // Verification Logic
   const hasAnyInputs = nozzles.some(n => n.cmr !== '' || n.writtenNet !== '');
