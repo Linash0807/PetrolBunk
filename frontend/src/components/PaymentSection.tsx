@@ -1,4 +1,6 @@
-import { IndianRupee, CreditCard, Banknote, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import { IndianRupee, CreditCard, Banknote, AlertCircle, CheckCircle2, XCircle, Plus, Trash2 } from 'lucide-react';
+import type { ExpenseItem } from '../types';
 
 interface PaymentSectionProps {
   totalNet: number;
@@ -10,8 +12,8 @@ interface PaymentSectionProps {
   setPhonePe: (val: string) => void;
   lubricant: string;
   setLubricant: (val: string) => void;
-  expense: string;
-  setexpense: (val: string) => void;
+  expenseItems: ExpenseItem[];
+  setExpenseItems: (items: ExpenseItem[]) => void;
   fleetCard: string;
   setFleetCard: (val: string) => void;
   actualCash: string;
@@ -23,9 +25,34 @@ interface PaymentSectionProps {
 }
 
 export function PaymentSection({ 
-  totalNet, totalSpeed, totalMS, totalHSD, prices, phonePe, setPhonePe, lubricant, setLubricant, expense, setexpense, fleetCard, setFleetCard, actualCash, setActualCash, 
+  totalNet, totalSpeed, totalMS, totalHSD, prices, phonePe, setPhonePe, lubricant, setLubricant, expenseItems, setExpenseItems, fleetCard, setFleetCard, actualCash, setActualCash, 
   calculatedCash, totalAmount, isCashMatch, isCashMismatch
 }: PaymentSectionProps) {
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemAmount, setNewItemAmount] = useState('');
+
+  const handleAddExpenseItem = () => {
+    const name = newItemName.trim();
+    const amount = parseFloat(newItemAmount) || 0;
+    if (!name) {
+      alert('Please enter a description for the expense.');
+      return;
+    }
+    if (amount <= 0) {
+      alert('Please enter an amount greater than 0.');
+      return;
+    }
+    setExpenseItems([...expenseItems, { name, amount }]);
+    setNewItemName('');
+    setNewItemAmount('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddExpenseItem();
+    }
+  };
 
   const actualCashNum = parseFloat(actualCash) || 0;
 
@@ -111,20 +138,68 @@ export function PaymentSection({
               />
             </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="col-span-1 sm:col-span-2 border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 p-4 rounded-2xl space-y-4">
+            <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-2">
               <span className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-[10px]">Ex</span>
-              Expense
+              Expense Items List
             </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₹</span>
-              <input 
-                type="number"
-                placeholder="0.00"
-                value={expense}
-                onChange={e => setexpense(e.target.value)}
-                className="w-full h-14 pl-8 pr-3 text-xl font-medium rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+
+            {/* List of current expenses */}
+            {expenseItems.length === 0 ? (
+              <p className="text-sm text-slate-400 dark:text-slate-500 italic pl-1">No expense items added yet.</p>
+            ) : (
+              <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
+                {expenseItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-left-2 duration-200">
+                    <span className="font-semibold text-slate-800 dark:text-slate-255 text-sm">{item.name}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-slate-900 dark:text-white text-sm">₹{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = expenseItems.filter((_, i) => i !== idx);
+                          setExpenseItems(updated);
+                        }}
+                        className="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 p-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add new expense input row */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <input
+                type="text"
+                placeholder="Expense description (e.g. Tea, Repairs)"
+                value={newItemName}
+                onChange={e => setNewItemName(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="flex-1 h-11 px-3.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-white"
               />
+              <div className="flex gap-2">
+                <div className="relative flex-1 sm:w-32">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">₹</span>
+                  <input
+                    type="number"
+                    placeholder="Amount"
+                    value={newItemAmount}
+                    onChange={e => setNewItemAmount(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="w-full h-11 pl-7 pr-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-white"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddExpenseItem}
+                  className="px-4 h-11 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm active:scale-95 shrink-0 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Add
+                </button>
+              </div>
             </div>
           </div>
                     <div className="space-y-1">

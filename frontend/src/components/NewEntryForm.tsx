@@ -3,7 +3,7 @@ import { Calendar, Clock, User, CheckCircle2, AlertTriangle, ShieldCheck } from 
 import { NozzleCard, type NozzleData } from './NozzleCard';
 import { PaymentSection } from './PaymentSection';
 import { VerificationPanel } from './VerificationPanel';
-import type { ShiftEntry } from '../types';
+import type { ShiftEntry, ExpenseItem } from '../types';
 
 const NOZZLES = ['Speed1', 'Speed2', 'MS1', 'MS2', 'HSD1', 'HSD2'];
 
@@ -41,7 +41,7 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
 
   const [phonePe, setPhonePe] = useState('');
   const [lubricant, setLubricant] = useState('');
-  const [expense, setexpense] = useState(''); 
+  const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([]); 
   const [fleetCard, setFleetCard] = useState('');
   const [actualCash, setActualCash] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -178,7 +178,7 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
   const phonePeNum = parseFloat(phonePe) || 0;
   const fleetCardNum = parseFloat(fleetCard) || 0;
   const actualCashNum = parseFloat(actualCash);
-  const expenseNum = parseFloat(expense) || 0;
+  const expenseNum = expenseItems.reduce((sum, item) => sum + item.amount, 0);
   const hasCashInput = actualCash !== '' && !Number.isNaN(actualCashNum);
   
   const speedPriceNum = parseFloat(prices.Speed) || 0;
@@ -425,7 +425,7 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
         prices={{ Speed: speedPriceNum, MS: msPriceNum, HSD: hsdPriceNum }}
         phonePe={phonePe} setPhonePe={setPhonePe}
         lubricant={lubricant} setLubricant={setLubricant}
-        expense={expense} setexpense={setexpense}
+        expenseItems={expenseItems} setExpenseItems={setExpenseItems}
         fleetCard={fleetCard} setFleetCard={setFleetCard}
         actualCash={actualCash} setActualCash={setActualCash}
         calculatedCash={calculatedCash} totalAmount={totalAmount}
@@ -471,6 +471,7 @@ export function NewEntryForm({ onAddEntry, entries }: NewEntryFormProps) {
                 lubricant: lubricantNum,
                 fleetCard: fleetCardNum,
                 expense: expenseNum,
+                expenseItems: expenseItems,
                 nozzleReadings: nozzles.map((nozzle) => ({
                   nozzleId: nozzle.id,
                   nozzleName: nozzle.name,

@@ -560,9 +560,21 @@ export function Reports({
                           </div>
                         )}
                         {(shift.expense || 0) > 0 && (
-                          <div className="flex justify-between items-center text-sm print:text-[10px]">
-                            <span className="font-medium text-rose-650 dark:text-rose-400 print:text-black">Expense</span>
-                            <span className="font-semibold text-rose-650 dark:text-rose-450 print:text-black">₹{shift.expense.toLocaleString('en-IN')}</span>
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-center text-sm print:text-[10px]">
+                              <span className="font-medium text-rose-650 dark:text-rose-400 print:text-black">Expense</span>
+                              <span className="font-semibold text-rose-650 dark:text-rose-450 print:text-black">₹{shift.expense.toLocaleString('en-IN')}</span>
+                            </div>
+                            {shift.expenseItems && shift.expenseItems.length > 0 && (
+                              <div className="pl-3 border-l-2 border-rose-200 dark:border-rose-900/50 space-y-0.5 mt-1">
+                                {shift.expenseItems.map((item, index) => (
+                                  <div key={index} className="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 print:text-black">
+                                    <span>• {item.name}</span>
+                                    <span>₹{item.amount.toLocaleString('en-IN')}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
                         <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-100 dark:border-slate-800 print:border-black print:pt-1 print:text-[10px]">
@@ -673,9 +685,21 @@ export function Reports({
                       </div>
                     )}
                     {(activeDailyEntry.expense || 0) > 0 && (
-                      <div className="flex justify-between items-center text-sm print:text-[10px]">
-                        <span className="font-medium text-rose-600 dark:text-rose-450 print:text-black">Expense Deduction</span>
-                        <span className="font-semibold text-rose-650 dark:text-rose-400 print:text-black">- ₹{activeDailyEntry.expense.toLocaleString('en-IN')}</span>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-sm print:text-[10px]">
+                          <span className="font-medium text-rose-600 dark:text-rose-450 print:text-black">Expense Deduction</span>
+                          <span className="font-semibold text-rose-650 dark:text-rose-400 print:text-black">- ₹{activeDailyEntry.expense.toLocaleString('en-IN')}</span>
+                        </div>
+                        {activeDailyEntry.expenseItems && activeDailyEntry.expenseItems.length > 0 && (
+                          <div className="pl-3 border-l-2 border-rose-200 dark:border-rose-900/50 space-y-0.5 mt-1">
+                            {activeDailyEntry.expenseItems.map((item, index) => (
+                              <div key={index} className="flex justify-between text-[11px] text-slate-500 dark:text-slate-400 print:text-black">
+                                    <span>• {item.name}</span>
+                                    <span>₹{item.amount.toLocaleString('en-IN')}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                     <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-100 dark:border-slate-800 print:border-black print:pt-1 print:text-[10px]">
@@ -791,7 +815,18 @@ export function Reports({
                           <td className="px-5 py-3 text-right text-slate-600 dark:text-slate-350 font-medium">₹{entry.phonePe.toLocaleString('en-IN')}</td>
                           <td className="px-5 py-3 text-right text-slate-600 dark:text-slate-350 font-medium">₹{entry.fleetCard.toLocaleString('en-IN')}</td>
                           <td className="px-5 py-3 text-right text-slate-600 dark:text-slate-350 font-medium">₹{(entry.lubricant || 0).toLocaleString('en-IN')}</td>
-                          <td className="px-5 py-3 text-right text-rose-600 dark:text-rose-400 font-bold">-₹{(entry.expense || 0).toLocaleString('en-IN')}</td>
+                          <td className="px-5 py-3 text-right text-rose-600 dark:text-rose-400">
+                             <div className="font-bold">-₹{(entry.expense || 0).toLocaleString('en-IN')}</div>
+                             {entry.expenseItems && entry.expenseItems.length > 0 && (
+                               <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal mt-0.5 print:hidden">
+                                 {entry.expenseItems.map((item, idx) => (
+                                   <div key={idx} className="whitespace-nowrap">
+                                     {item.name}: ₹{item.amount}
+                                   </div>
+                                 ))}
+                               </div>
+                             )}
+                           </td>
                           <td className="px-5 py-3 text-right text-emerald-600 dark:text-emerald-400 font-bold">₹{entryNetCollection.toLocaleString('en-IN')}</td>
                           <td className="px-5 py-3">
                             <div className="flex items-center justify-center gap-1.5">

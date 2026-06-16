@@ -19,6 +19,18 @@ const dailyEntrySchema = new mongoose.Schema({
   phonePe: { type: Number, required: true, min: 0 },
   fleetCard: { type: Number, required: true, min: 0 },
   expense: { type: Number, default: 0, min: 0 },
+  expenseItems: {
+    type: [
+      new mongoose.Schema(
+        {
+          name: { type: String, required: true, trim: true },
+          amount: { type: Number, required: true, min: 0 }
+        },
+        { _id: false }
+      )
+    ],
+    default: []
+  },
   nozzleReadings: { type: [nozzleReadingSchema], default: [] }
 }, { timestamps: true });
 

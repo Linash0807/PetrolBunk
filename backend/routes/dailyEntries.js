@@ -24,6 +24,16 @@ const normalizeNozzleReadings = (rawReadings) => {
   }));
 };
 
+const normalizeExpenseItems = (rawItems) => {
+  if (!Array.isArray(rawItems)) return [];
+  return rawItems
+    .map((item) => ({
+      name: String(item?.name || '').trim(),
+      amount: toNumber(item?.amount),
+    }))
+    .filter((item) => item.name && typeof item.amount === 'number' && !Number.isNaN(item.amount));
+};
+
 router.post('/', async (req, res) => {
   try {
     const payload = {
@@ -37,6 +47,7 @@ router.post('/', async (req, res) => {
       phonePe: toNumber(req.body?.phonePe),
       fleetCard: toNumber(req.body?.fleetCard),
       expense: toNumber(req.body?.expense) || 0,
+      expenseItems: normalizeExpenseItems(req.body?.expenseItems),
       nozzleReadings: normalizeNozzleReadings(req.body?.nozzleReadings),
     };
 
@@ -83,6 +94,7 @@ router.put('/:id', async (req, res) => {
       phonePe: toNumber(req.body?.phonePe),
       fleetCard: toNumber(req.body?.fleetCard),
       expense: toNumber(req.body?.expense) || 0,
+      expenseItems: normalizeExpenseItems(req.body?.expenseItems),
       nozzleReadings: normalizeNozzleReadings(req.body?.nozzleReadings),
     };
 

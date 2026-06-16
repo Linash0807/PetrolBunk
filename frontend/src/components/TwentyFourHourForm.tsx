@@ -3,7 +3,7 @@ import { Calendar, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react
 import { NozzleCard, type NozzleData } from './NozzleCard';
 import { PaymentSection } from './PaymentSection';
 import { VerificationPanel } from './VerificationPanel';
-import type { DailyEntry } from '../types';
+import type { DailyEntry, ExpenseItem } from '../types';
 
 const NOZZLE_NAMES = [
   'MS 1', 'MS 2', 'MS 3', 'MS 4', 'MS 5', 'MS 6',
@@ -63,7 +63,9 @@ export function TwentyFourHourForm({ onAddEntry, initialEntry, onCancel, dailyEn
 
   const [phonePe, setPhonePe] = useState(() => initialEntry?.phonePe?.toString() || '');
   const [lubricant, setLubricant] = useState(() => initialEntry?.lubricant?.toString() || '');
-  const [expense, setexpense] = useState(() => initialEntry?.expense?.toString() || ''); 
+  const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>(() => {
+    return initialEntry?.expenseItems || [];
+  });
   const [fleetCard, setFleetCard] = useState(() => initialEntry?.fleetCard?.toString() || '');
   const [actualCash, setActualCash] = useState(() => initialEntry?.cash?.toString() || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -198,7 +200,7 @@ export function TwentyFourHourForm({ onAddEntry, initialEntry, onCancel, dailyEn
   const phonePeNum = parseFloat(phonePe) || 0;
   const fleetCardNum = parseFloat(fleetCard) || 0;
   const actualCashNum = parseFloat(actualCash);
-  const expenseNum = parseFloat(expense) || 0;
+  const expenseNum = expenseItems.reduce((sum, item) => sum + item.amount, 0);
   const hasCashInput = actualCash !== '' && !Number.isNaN(actualCashNum);
   
   const speedPriceNum = parseFloat(prices.Speed) || 0;
@@ -394,7 +396,7 @@ export function TwentyFourHourForm({ onAddEntry, initialEntry, onCancel, dailyEn
         prices={{ Speed: speedPriceNum, MS: msPriceNum, HSD: hsdPriceNum }}
         phonePe={phonePe} setPhonePe={setPhonePe}
         lubricant={lubricant} setLubricant={setLubricant}
-        expense={expense} setexpense={setexpense}
+        expenseItems={expenseItems} setExpenseItems={setExpenseItems}
         fleetCard={fleetCard} setFleetCard={setFleetCard}
         actualCash={actualCash} setActualCash={setActualCash}
         calculatedCash={calculatedCash} totalAmount={totalAmount}
@@ -450,6 +452,7 @@ export function TwentyFourHourForm({ onAddEntry, initialEntry, onCancel, dailyEn
                 lubricant: lubricantNum,
                 fleetCard: fleetCardNum,
                 expense: expenseNum,
+                expenseItems,
                 nozzleReadings
               });
             } finally {

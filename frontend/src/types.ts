@@ -7,6 +7,11 @@ export interface NozzleReading {
   writtenNet: number;
 }
 
+export interface ExpenseItem {
+  name: string;
+  amount: number;
+}
+
 export interface ShiftEntry {
   _id?: string;
   bunk: string;
@@ -22,6 +27,7 @@ export interface ShiftEntry {
   phonePe: number;
   fleetCard: number;
   expense: number;
+  expenseItems?: ExpenseItem[];
   nozzleReadings?: NozzleReading[];
 }
 
@@ -36,5 +42,6 @@ export interface DailyEntry {
   phonePe: number;
   fleetCard: number;
   expense: number;
+  expenseItems?: ExpenseItem[];
   nozzleReadings: NozzleReading[];
 }
