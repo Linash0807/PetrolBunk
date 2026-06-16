@@ -437,6 +437,7 @@ function App() {
           <TwentyFourHourForm 
             onAddEntry={handleAddDailyEntry} 
             initialEntry={editingDailyEntry} 
+            dailyEntries={dailyEntries}
             onCancel={() => {
               setEditingDailyEntry(null);
               navigateTo('/reports');

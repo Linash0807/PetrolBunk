@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Calendar, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { NozzleCard, type NozzleData } from './NozzleCard';
 import { PaymentSection } from './PaymentSection';
@@ -24,9 +24,10 @@ interface TwentyFourHourFormProps {
   onAddEntry: (entry: DailyEntry) => Promise<void>;
   initialEntry?: DailyEntry | null;
   onCancel?: () => void;
+  dailyEntries: DailyEntry[];
 }
 
-export function TwentyFourHourForm({ onAddEntry, initialEntry, onCancel }: TwentyFourHourFormProps) {
+export function TwentyFourHourForm({ onAddEntry, initialEntry, onCancel, dailyEntries }: TwentyFourHourFormProps) {
   const [date, setDate] = useState(() => {
     if (initialEntry?.date) {
       // Ensure date format is YYYY-MM-DD
@@ -66,6 +67,80 @@ export function TwentyFourHourForm({ onAddEntry, initialEntry, onCancel }: Twent
   const [fleetCard, setFleetCard] = useState(() => initialEntry?.fleetCard?.toString() || '');
   const [actualCash, setActualCash] = useState(() => initialEntry?.cash?.toString() || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [omrSourceLabel, setOmrSourceLabel] = useState('');
+
+  useEffect(() => {
+    if (initialEntry) {
+      // If we are editing, OMR values are already loaded from initialEntry in state initialization.
+      return;
+    }
+
+    // Find the nearest previous entry to the selected date
+    const nearestPreviousEntry = dailyEntries
+      .filter((entry) => {
+        if (!entry.date) return false;
+        return entry.date < date;
+      })
+      .sort((a, b) => {
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        const aId = a._id || '';
+        const bId = b._id || '';
+        return bId.localeCompare(aId);
+      })[0];
+
+    const latestReadingByNozzle: Record<string, string> = {};
+    let resolvedSourceLabel = '';
+
+    if (nearestPreviousEntry) {
+      resolvedSourceLabel = `Auto from ${nearestPreviousEntry.date} report`;
+      for (const reading of nearestPreviousEntry.nozzleReadings || []) {
+        const key = reading.nozzleId || reading.nozzleName;
+        if (key && !(key in latestReadingByNozzle)) {
+          latestReadingByNozzle[key] = String(reading.cmr);
+        }
+      }
+    } else {
+      // Try to find the latest saved record overall
+      const latestEntryOverall = [...dailyEntries].sort((a, b) => {
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        const aId = a._id || '';
+        const bId = b._id || '';
+        return bId.localeCompare(aId);
+      })[0];
+
+      if (latestEntryOverall) {
+        resolvedSourceLabel = `Auto from latest saved report (${latestEntryOverall.date})`;
+        for (const reading of latestEntryOverall.nozzleReadings || []) {
+          const key = reading.nozzleId || reading.nozzleName;
+          if (key && !(key in latestReadingByNozzle)) {
+            latestReadingByNozzle[key] = String(reading.cmr);
+          }
+        }
+      }
+    }
+
+    if (Object.keys(latestReadingByNozzle).length === 0) {
+      setOmrSourceLabel('No previous report found. OMR set to 0.');
+      setNozzles((prev) =>
+        prev.map((nozzle) => ({
+          ...nozzle,
+          omr: '0',
+        }))
+      );
+      return;
+    }
+
+    setOmrSourceLabel(resolvedSourceLabel);
+    setNozzles((prev) =>
+      prev.map((nozzle) => {
+        const val = latestReadingByNozzle[nozzle.id] || latestReadingByNozzle[nozzle.name] || '0';
+        return {
+          ...nozzle,
+          omr: val,
+        };
+      })
+    );
+  }, [dailyEntries, date, initialEntry]);
 
   const handleNozzleChange = (index: number, field: keyof NozzleData, value: string) => {
     const updated = [...nozzles];
@@ -247,7 +322,14 @@ export function TwentyFourHourForm({ onAddEntry, initialEntry, onCancel }: Twent
 
       {/* Pumps Section */}
       <div className="space-y-6">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider pt-2 pl-1">Meter Readings</h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 pl-1">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">Meter Readings</h3>
+          {omrSourceLabel && (
+            <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1 rounded-full border border-blue-100 dark:border-blue-900/30">
+              {omrSourceLabel}
+            </span>
+          )}
+        </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {['MS', 'HSD', 'Speed'].map(fuel => {
