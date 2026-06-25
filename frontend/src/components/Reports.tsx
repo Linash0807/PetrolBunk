@@ -108,6 +108,21 @@ export function Reports({
   const totalExpectedCash = Math.max(0, totalSalesRs - totalPhonePe - totalFleetCard - totalExpense + totalLubricant);
   const totalCollection = totalCash + totalPhonePe + totalFleetCard + totalLubricant - totalExpense;
 
+  const allExpenses = reportType === 'shift'
+    ? currentData.reduce<{ employee: string; name: string; amount: number }[]>((acc, shift) => {
+        if (shift.expenseItems && shift.expenseItems.length > 0) {
+          shift.expenseItems.forEach(item => {
+            acc.push({
+              employee: shift.employee || 'Unknown',
+              name: item.name,
+              amount: item.amount
+            });
+          });
+        }
+        return acc;
+      }, [])
+    : [];
+
   const handleDownloadPdf = () => {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const fileDate = reportDateISO || new Date().toISOString().split('T')[0];
@@ -143,7 +158,7 @@ export function Reports({
           ['PhonePe Collection', `Rs ${totalPhonePe.toLocaleString('en-IN')}`],
           ['Fleet Card Collection', `Rs ${totalFleetCard.toLocaleString('en-IN')}`],
           ['Lubricant Collection', `Rs ${totalLubricant.toLocaleString('en-IN')}`],
-       //   ['Expenses', `Rs ${totalExpense.toLocaleString('en-IN')}`],
+          ['Expenses', `Rs ${totalExpense.toLocaleString('en-IN')}`],
           ['Net Collection', `Rs ${totalCollection.toLocaleString('en-IN')}`],
         ],
       });
@@ -161,6 +176,20 @@ export function Reports({
             nozzle.cmr.toString(),
             nozzle.testing.toString(),
             `${nozzle.writtenNet.toFixed(2)} L`
+          ])
+        });
+      }
+
+      if (activeDailyEntry.expenseItems && activeDailyEntry.expenseItems.length > 0) {
+        autoTable(doc, {
+          startY: (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 15 : 240,
+          theme: 'grid',
+          styles: { fontSize: 8, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.5, cellPadding: 3 },
+          headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold' },
+          head: [['Expense Description', 'Amount']],
+          body: activeDailyEntry.expenseItems.map((item) => [
+            item.name,
+            `Rs ${item.amount.toLocaleString('en-IN')}`
           ])
         });
       }
@@ -199,7 +228,7 @@ export function Reports({
         ['PhonePe', `Rs ${totalPhonePe.toLocaleString('en-IN')}`],
         ['Fleet Card', `Rs ${totalFleetCard.toLocaleString('en-IN')}`],
         ['Lubricant', `Rs ${totalLubricant.toLocaleString('en-IN')}`],
-       // ['Expenses', `Rs ${totalExpense.toLocaleString('en-IN')}`],
+        ['Expenses', `Rs ${totalExpense.toLocaleString('en-IN')}`],
         ['Net Collection', `Rs ${totalCollection.toLocaleString('en-IN')}`],
       ],
     });
@@ -211,7 +240,7 @@ export function Reports({
       theme: 'grid',
       styles: { fontSize: 8, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.5, cellPadding: 3 },
       headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold' },
-      head: [['Employee', 'Shift', 'Pump', 'Speed (L)', 'MS (L)', 'HSD (L)', 'Cash', 'PhonePe', 'Fleet', 'Lubricant'/* 'Expense'*/, 'Shift Total']],
+      head: [['Employee', 'Shift', 'Pump', 'Speed (L)', 'MS (L)', 'HSD (L)', 'Cash', 'PhonePe', 'Fleet', 'Lubricant', 'Expense', 'Shift Total']],
       body: currentData.map((shift) => {
         const shiftTotal = shift.cash + shift.phonePe + shift.fleetCard + (shift.lubricant || 0) - (shift.expense || 0);
         return [
@@ -225,11 +254,40 @@ export function Reports({
           `Rs ${shift.phonePe.toLocaleString('en-IN')}`,
           `Rs ${shift.fleetCard.toLocaleString('en-IN')}`,
           `Rs ${(shift.lubricant || 0).toLocaleString('en-IN')}`,
-      //    `Rs ${(shift.expense || 0).toLocaleString('en-IN')}`,
+          `Rs ${(shift.expense || 0).toLocaleString('en-IN')}`,
           `Rs ${shiftTotal.toLocaleString('en-IN')}`,
         ];
       }),
     });
+
+    // Collect all expense items from all shifts
+    const allExpenses = currentData.reduce<{ employee: string; name: string; amount: number }[]>((acc, shift) => {
+      if (shift.expenseItems && shift.expenseItems.length > 0) {
+        shift.expenseItems.forEach(item => {
+          acc.push({
+            employee: shift.employee || 'Unknown',
+            name: item.name,
+            amount: item.amount
+          });
+        });
+      }
+      return acc;
+    }, []);
+
+    if (allExpenses.length > 0) {
+      autoTable(doc, {
+        startY: (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 15 : 200,
+        theme: 'grid',
+        styles: { fontSize: 8, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.5, cellPadding: 3 },
+        headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold' },
+        head: [['Employee/Shift', 'Expense Description', 'Amount']],
+        body: allExpenses.map((exp) => [
+          exp.employee,
+          exp.name,
+          `Rs ${exp.amount.toLocaleString('en-IN')}`
+        ])
+      });
+    }
 
     doc.save(fileName);
   };
@@ -347,7 +405,7 @@ export function Reports({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 print:grid-cols-6 print:gap-1">
+      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 print:grid-cols-7 print:gap-1">
         {/* Net Liters Card */}
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-5 border border-blue-100 dark:border-blue-800/50 print:break-inside-avoid print:bg-white print:border-black print:p-2">
           <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-2 print:text-black print:mb-1">
@@ -407,7 +465,55 @@ export function Reports({
           <div className="text-2xl font-black text-slate-900 dark:text-white print:text-sm print:text-black">₹{(totalFleetCard / 1000).toFixed(1)}k</div>
           <div className="text-xs text-slate-500 mt-1 print:text-[10px] print:text-black print:mt-0.5">₹{totalFleetCard.toLocaleString('en-IN')}</div>
         </div>
+
+        {/* Expenses Card */}
+        <div className="bg-gradient-to-br from-rose-50 to-red-50 dark:from-rose-900/20 dark:to-red-900/20 rounded-2xl p-5 border border-rose-100 dark:border-rose-800/50 print:break-inside-avoid print:bg-white print:border-black print:p-2">
+          <div className="flex items-center gap-2 text-rose-600 dark:text-rose-450 mb-2 print:text-black print:mb-1">
+            <IndianRupee className="w-5 h-5 print:hidden" />
+            <span className="text-sm font-bold uppercase tracking-wider print:text-[10px]">Expenses</span>
+          </div>
+          <div className="text-2xl font-black text-slate-900 dark:text-white print:text-sm print:text-black">₹{(totalExpense / 1000).toFixed(1)}k</div>
+          <div className="text-xs text-slate-500 mt-1 print:text-[10px] print:text-black print:mt-0.5">₹{totalExpense.toLocaleString('en-IN')}</div>
+        </div>
       </div>
+
+      {/* Consolidated Expenses Breakdown Section */}
+      {((reportType === 'shift' && allExpenses.length > 0) || (reportType === 'daily' && activeDailyEntry?.expenseItems && activeDailyEntry.expenseItems.length > 0)) && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden p-5 space-y-4 print:break-inside-avoid print:border-black print:shadow-none print:rounded-none print:p-2">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-3 flex justify-between items-center print:border-black print:pb-1">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 print:text-xs print:text-black">
+              <span className="p-1.5 rounded-lg bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 print:hidden">
+                <IndianRupee className="w-4 h-4" />
+              </span>
+              Expenses Breakdown
+            </h3>
+            <span className="text-sm font-bold text-rose-600 dark:text-rose-455 bg-rose-50 dark:bg-rose-950/30 px-3 py-1 rounded-full print:text-black print:bg-white print:border print:border-black">
+              Total: ₹{totalExpense.toLocaleString('en-IN')}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 print:grid-cols-2">
+            {reportType === 'shift' ? (
+              allExpenses.map((exp, idx) => (
+                <div key={idx} className="flex justify-between items-center p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-850/50 print:bg-white print:border-black print:p-1">
+                  <div className="space-y-0.5">
+                    <div className="font-semibold text-slate-850 dark:text-slate-150 text-sm print:text-black">{exp.name}</div>
+                    <div className="text-xs text-slate-450 print:text-[10px] print:text-black">Employee: {exp.employee}</div>
+                  </div>
+                  <div className="font-bold text-rose-600 dark:text-rose-400 print:text-black">₹{exp.amount.toLocaleString('en-IN')}</div>
+                </div>
+              ))
+            ) : (
+              activeDailyEntry?.expenseItems?.map((exp, idx) => (
+                <div key={idx} className="flex justify-between items-center p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-850/50 print:bg-white print:border-black print:p-1">
+                  <div className="font-semibold text-slate-850 dark:text-slate-150 text-sm print:text-black">{exp.name}</div>
+                  <div className="font-bold text-rose-600 dark:text-rose-400 print:text-black">₹{exp.amount.toLocaleString('en-IN')}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {reportType === 'shift' ? (
         <>
