@@ -288,8 +288,7 @@ export function TwentyFourHourForm({ onAddEntry, initialEntry, onCancel, dailyEn
             type="date" 
             value={date}
             onChange={e => setDate(e.target.value)}
-            disabled={!!initialEntry}
-            className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:opacity-75 disabled:cursor-not-allowed"
+            className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
           />
         </div>
       </div>
@@ -455,6 +454,9 @@ export function TwentyFourHourForm({ onAddEntry, initialEntry, onCancel, dailyEn
                 expenseItems,
                 nozzleReadings
               });
+            } catch (error) {
+              console.error(error);
+              alert(error instanceof Error ? error.message : 'Failed to save daily entry');
             } finally {
               setIsSubmitting(false);
             }

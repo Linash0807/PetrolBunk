@@ -177,11 +177,11 @@ function App() {
   const [editingEntry, setEditingEntry] = useState<ShiftEntry | null>(null);
   const [editingDailyEntry, setEditingDailyEntry] = useState<DailyEntry | null>(null);
 
-  const navigateTo = (path: string) => {
+  const navigateTo = (path: string, clearEditing = true) => {
     const nextPath = normalizePath(path);
     setCurrentPath(nextPath);
 
-    if (nextPath !== '/24hrs') {
+    if (clearEditing) {
       setEditingDailyEntry(null);
     }
     setEditingEntry(null);
@@ -297,7 +297,14 @@ function App() {
       throw new Error('Invalid response while saving entry');
     }
 
-    setEntries((prev) => [result.data, ...prev]);
+    setEntries((prev) => 
+      [result.data, ...prev].sort((a, b) => {
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        const aCreatedAt = (a as any).createdAt || '';
+        const bCreatedAt = (b as any).createdAt || '';
+        return bCreatedAt.localeCompare(aCreatedAt);
+      })
+    );
     alert('Entry saved to MongoDB successfully!');
     navigateTo('/reports');
   };
@@ -326,7 +333,11 @@ function App() {
       throw new Error('Invalid response while updating 24 Hrs Report');
     }
 
-    setDailyEntries((prev) => prev.map(e => e._id === entry._id ? result.data : e));
+    setDailyEntries((prev) => 
+      prev
+        .map(e => e._id === entry._id ? result.data : e)
+        .sort((a, b) => b.date.localeCompare(a.date))
+    );
     setEditingDailyEntry(null);
     alert('24 Hrs Report updated successfully!');
     navigateTo('/reports');
@@ -375,7 +386,9 @@ function App() {
       throw new Error('Invalid response while saving entry');
     }
 
-    setDailyEntries((prev) => [result.data, ...prev]);
+    setDailyEntries((prev) => 
+      [result.data, ...prev].sort((a, b) => b.date.localeCompare(a.date))
+    );
     alert('24 Hrs Report saved successfully!');
     navigateTo('/reports');
   };
@@ -404,7 +417,16 @@ function App() {
       throw new Error('Invalid response while updating entry');
     }
 
-    setEntries((prev) => prev.map(e => e._id === entry._id ? result.data : e));
+    setEntries((prev) => 
+      prev
+        .map(e => e._id === entry._id ? result.data : e)
+        .sort((a, b) => {
+          if (a.date !== b.date) return b.date.localeCompare(a.date);
+          const aCreatedAt = (a as any).createdAt || '';
+          const bCreatedAt = (b as any).createdAt || '';
+          return bCreatedAt.localeCompare(aCreatedAt);
+        })
+    );
     setEditingEntry(null);
     alert('Entry updated successfully!');
   };
@@ -452,7 +474,7 @@ function App() {
             onDeleteEntry={handleDeleteEntry}
             onEditDailyEntry={(entry) => {
               setEditingDailyEntry(entry);
-              navigateTo('/24hrs');
+              navigateTo('/24hrs', false);
             }}
             onDeleteDailyEntry={handleDeleteDailyEntry}
             onNavigateTo24Hrs={() => {
